@@ -1,4 +1,4 @@
-//! Implements tree data structures and interfaces to work with them.
+//! Implements arena-allocated tree data structures and interfaces to work with them.
 //!
 //! ------------------------
 //!
@@ -11,7 +11,7 @@
 //! ------------------------
 //!
 //! # Overview
-//! Sapling implements various kinds of trees using a technique called ["arena-allocated trees"][arena tree blog post], described by Ben Lovy. The gist of it is that the trees use some sort of backing storage to store the elements, typically a [`Vec`] (or its variants, like [`SmallVec`] or [`ArrayVec`]), and instead of using pointers to link to children, indices into the storage are used instead. This significantly improves element insertion and removal performance as compared to `Rc`-based trees, and gives room for supporting configurations without a global memory allocator.
+//! Trunk implements various kinds of trees using a technique called ["arena-allocated trees"][arena tree blog post], described by Ben Lovy. The gist of it is that the trees use some sort of backing storage to store the elements, typically a [`Vec`] (or its variants, like [`SmallVec`] or [`ArrayVec`]), and instead of using pointers to link to children, indices into the storage are used instead. This significantly improves element insertion and removal performance as compared to `Rc`-based trees, and gives room for supporting configurations without a global memory allocator.
 //!
 //! # Storage
 //! The trait used for defining the "arena" type used is `Storage`. Implementing it directly isn't the only way to get your type to be supported by tree types — `ListStorage` is a trait which allows you to define an arena storage in terms of a list-like collection.
@@ -35,7 +35,6 @@
 //! - `arrayvec_storage` (**enabled by default**) — adds a `ListStorage` trait implementation for [`ArrayVec`].
 //! - `slotmap_storage` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
 //! - `union_optimizations` — adds some layout optimizations by using untagged unions, decreasing memory usage in `SparseStorage`. **Requires a nightly compiler** (see [tracking issue for RFC 2514]) and thus is disabled by default.
-// - `linked_list_storage` — adds a `ListStorage` trait implementation for [`LinkedList`]. **Requires a nightly compiler** (see [tracking issue for RFC 2570]) and thus is disabled by default.
 //!
 //! [`Error`]: https://doc.rust-lang.org/std/error/trait.Error.html " "
 //! [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html " "
@@ -45,8 +44,6 @@
 //! [`SlotMap`]: https://docs.rs/slotmap/*/slotmap/struct.SlotMap.html " "
 //! [`HopSlotMap`]: https://docs.rs/slotmap/*/slotmap/hop/struct.HopSlotMap.html " "
 //! [`DenseSlotMap`]: https://docs.rs/slotmap/*/slotmap/dense/struct.DenseSlotMap.html " "
-// [`LinkedList`]: https://doc.rust-lang.org/std/collections/linked_list/struct.LinkedList.html " "
-// [tracking issue for RFC 2570]: https://github.com/rust-lang/rust/issues/58533 " "
 //! [tracking issue for RFC 2514]: https://github.com/rust-lang/rust/issues/55149 " "
 //! [arena tree blog post]: https://dev.to/deciduously/no-more-tears-no-more-knots-arena-allocated-trees-in-rust-44k6 " "
 
@@ -131,7 +128,7 @@ pub use binary_tree::BinaryTree;
 pub mod traversal;
 pub use traversal::{Visitor, VisitorMut, Traversable, TraversableMut};
 
-/// A prelude for using Sapling, containing the most used types in a renamed form for safe glob-importing.
+/// A prelude for using Trunk, containing the most used types in a renamed form for safe glob-importing.
 pub mod prelude {
     pub use crate::storage::ListStorage as TreeStorage;
     pub use crate::storage::SparseStorage as SparseTreeStorage;

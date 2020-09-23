@@ -1,12 +1,12 @@
 [package]
-name = "sapling"
+name = "trunk"
 version = "0.1.0"
 authors = ["Kotauskas <v.toncharov@gmail.com>"]
 edition = "2018"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/kotauskas/sapling.rs"
-documentation = "https://docs.rs/sapling"
+repository = "https://github.com/kotauskas/trunk.rs"
+documentation = "https://docs.rs/trunk"
 
 description = "Implements tree data structures and interfaces to work with them."
 

@@ -1,7 +1,7 @@
-# Sapling
-[![Crates.io](https://img.shields.io/crates/v/sapling)](https://crates.io/crates/sapling "Sapling on Crates.io")
-[![Docs.rs](https://img.shields.io/badge/documentation-docs.rs-informational)](https://docs.rs/sapling "Sapling on Docs.rs")
-[![Build Status](https://github.com/kotauskas/sapling.rs/workflows/Build/badge.svg)](https://github.com/kotauskas/sapling.rs/actions "GitHub Actions page for Sapling")
+# Trunk
+[![Crates.io](https://img.shields.io/crates/v/trunk)](https://crates.io/crates/trunk "Trunk on Crates.io")
+[![Docs.rs](https://img.shields.io/badge/documentation-docs.rs-informational)](https://docs.rs/trunk "Trunk on Docs.rs")
+[![Build Status](https://github.com/kotauskas/trunk.rs/workflows/Build/badge.svg)](https://github.com/kotauskas/trunk.rs/actions "GitHub Actions page for Trunk")
 
 Implements arena-allocated tree data structures and interfaces to work with them.
 
@@ -16,7 +16,7 @@ Currently, the crate is in an unfinished state and is not ready to be uploaded t
 ------------------------
 
 ## Overview
-Sapling implements various kinds of trees using a technique called ["arena-allocated trees"][arena tree blog post], described by Ben Lovy. The gist of it is that the trees use some sort of backing storage to store the elements, typically a [`Vec`] (or its variants, like [`SmallVec`] or [`ArrayVec`]), and instead of using pointers to link to children, indices into the storage are used instead. This significantly improves element insertion and removal performance as compared to `Rc`-based trees, and gives room for supporting configurations without a global memory allocator.
+Trunk implements various kinds of trees using a technique called ["arena-allocated trees"][arena tree blog post], described by Ben Lovy. The gist of it is that the trees use some sort of backing storage to store the elements, typically a [`Vec`] (or its variants, like [`SmallVec`] or [`ArrayVec`]), and instead of using pointers to link to children, indices into the storage are used instead. This significantly improves element insertion and removal performance as compared to `Rc`-based trees, and gives room for supporting configurations without a global memory allocator.
 
 ## Storage
 The trait used for defining the "arena" type used is `Storage`. Implementing it directly isn't the only way to get your type to be supported by tree types — `ListStorage` is a trait which allows you to define an arena storage in terms of a list-like collection.
