@@ -1,0 +1,31 @@
+[package]
+name = "sapling"
+version = "0.1.0"
+authors = ["Kotauskas <v.toncharov@gmail.com>"]
+edition = "2018"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/kotauskas/sapling.rs"
+documentation = "https://docs.rs/sapling"
+
+description = "Implements tree data structures and interfaces to work with them."
+
+categories = ["no-std", "data-structures", "algorithms"]
+keywords = ["tree", "trees", "arena_tree"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+smallvec = {version = "1.4", optional = true}
+arrayvec = {version = "0.5", optional = true, default_features = false}
+slotmap = {version = "0.4", optional = true}
+
+[features]
+default = ["std", "alloc", "smallvec_storage", "arrayvec_storage", "slotmap_storage"]
+std = []
+alloc = []
+union_optimizations = []
+#linked_list_storage = ["alloc"]
+smallvec_storage = ["smallvec"]
+arrayvec_storage = ["arrayvec"]
+slotmap_storage = ["slotmap"]
