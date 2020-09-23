@@ -1,7 +1,7 @@
-# Trunk
-[![Crates.io](https://img.shields.io/crates/v/trunk)](https://crates.io/crates/trunk "Trunk on Crates.io")
-[![Docs.rs](https://img.shields.io/badge/documentation-docs.rs-informational)](https://docs.rs/trunk "Trunk on Docs.rs")
-[![Build Status](https://github.com/kotauskas/trunk.rs/workflows/Build/badge.svg)](https://github.com/kotauskas/trunk.rs/actions "GitHub Actions page for Trunk")
+# Charcoal
+[![Crates.io](https://img.shields.io/crates/v/charcoal)](https://crates.io/crates/charcoal "Charcoal on Crates.io")
+[![Docs.rs](https://img.shields.io/badge/documentation-docs.rs-informational)](https://docs.rs/charcoal "Charcoal on Docs.rs")
+[![Build Status](https://github.com/kotauskas/charcoal.rs/workflows/Build/badge.svg)](https://github.com/kotauskas/charcoal.rs/actions "GitHub Actions page for Charcoal")
 
 Implements arena-allocated tree data structures and interfaces to work with them.
 
@@ -16,7 +16,7 @@ Currently, the crate is in an unfinished state and is not ready to be uploaded t
 ------------------------
 
 ## Overview
-Trunk implements various kinds of trees using a technique called ["arena-allocated trees"][arena tree blog post], described by Ben Lovy. The gist of it is that the trees use some sort of backing storage to store the elements, typically a [`Vec`] (or its variants, like [`SmallVec`] or [`ArrayVec`]), and instead of using pointers to link to children, indices into the storage are used instead. This significantly improves element insertion and removal performance as compared to `Rc`-based trees, and gives room for supporting configurations without a global memory allocator.
+Charcoal implements various kinds of trees using a technique called ["arena-allocated trees"][arena tree blog post], described by Ben Lovy. The gist of it is that the trees use some sort of backing storage to store the elements, typically a [`Vec`] (or its variants, like [`SmallVec`] or [`ArrayVec`]), and instead of using pointers to link to children, indices into the storage are used instead. This significantly improves element insertion and removal performance as compared to `Rc`-based trees, and gives room for supporting configurations without a global memory allocator.
 
 ## Storage
 The trait used for defining the "arena" type used is `Storage`. Implementing it directly isn't the only way to get your type to be supported by tree types — `ListStorage` is a trait which allows you to define an arena storage in terms of a list-like collection.
@@ -40,3 +40,14 @@ By default, all trees use a technique called "sparse storage" to significantly s
 - `arrayvec_storage` (**enabled by default**) — adds a `ListStorage` trait implementation for [`ArrayVec`].
 - `slotmap_storage` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
 - `union_optimizations` — adds some layout optimizations by using untagged unions, decreasing memory usage in `SparseStorage`. **Requires a nightly compiler** (see [tracking issue for RFC 2514]) and thus is disabled by default.
+
+[`Error`]: https://doc.rust-lang.org/std/error/trait.Error.html " "
+[`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html " "
+[`VecDeque`]: https://doc.rust-lang.org/std/collections/struct.VecDeque.html " "
+[`SmallVec`]: https://docs.rs/smallvec/*/smallvec/struct.SmallVec.html " "
+[`ArrayVec`]: https://docs.rs/arrayvec/*/arrayvec/struct.ArrayVec.html " "
+[`SlotMap`]: https://docs.rs/slotmap/*/slotmap/struct.SlotMap.html " "
+[`HopSlotMap`]: https://docs.rs/slotmap/*/slotmap/hop/struct.HopSlotMap.html " "
+[`DenseSlotMap`]: https://docs.rs/slotmap/*/slotmap/dense/struct.DenseSlotMap.html " "
+[tracking issue for RFC 2514]: https://github.com/rust-lang/rust/issues/55149 " "
+[arena tree blog post]: https://dev.to/deciduously/no-more-tears-no-more-knots-arena-allocated-trees-in-rust-44k6 " "

@@ -11,7 +11,7 @@
 //! ------------------------
 //!
 //! # Overview
-//! Trunk implements various kinds of trees using a technique called ["arena-allocated trees"][arena tree blog post], described by Ben Lovy. The gist of it is that the trees use some sort of backing storage to store the elements, typically a [`Vec`] (or its variants, like [`SmallVec`] or [`ArrayVec`]), and instead of using pointers to link to children, indices into the storage are used instead. This significantly improves element insertion and removal performance as compared to `Rc`-based trees, and gives room for supporting configurations without a global memory allocator.
+//! Charcoal implements various kinds of trees using a technique called ["arena-allocated trees"][arena tree blog post], described by Ben Lovy. The gist of it is that the trees use some sort of backing storage to store the elements, typically a [`Vec`] (or its variants, like [`SmallVec`] or [`ArrayVec`]), and instead of using pointers to link to children, indices into the storage are used instead. This significantly improves element insertion and removal performance as compared to `Rc`-based trees, and gives room for supporting configurations without a global memory allocator.
 //!
 //! # Storage
 //! The trait used for defining the "arena" type used is `Storage`. Implementing it directly isn't the only way to get your type to be supported by tree types — `ListStorage` is a trait which allows you to define an arena storage in terms of a list-like collection.
@@ -128,7 +128,7 @@ pub use binary_tree::BinaryTree;
 pub mod traversal;
 pub use traversal::{Visitor, VisitorMut, Traversable, TraversableMut};
 
-/// A prelude for using Trunk, containing the most used types in a renamed form for safe glob-importing.
+/// A prelude for using Charcoal, containing the most used types in a renamed form for safe glob-importing.
 pub mod prelude {
     pub use crate::storage::ListStorage as TreeStorage;
     pub use crate::storage::SparseStorage as SparseTreeStorage;
