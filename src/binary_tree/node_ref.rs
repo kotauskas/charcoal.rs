@@ -1,8 +1,9 @@
 use core::{
-    ptr,
-    mem,
-    fmt::Debug,
-    hint,
+    ptr, // write and read
+    mem, // swap
+    fmt::Debug, // trait bounds
+    hint, // unreachable_unchecked
+    convert, // identity
 };
 use crate::{
     TryRemoveLeafError, TryRemoveBranchError, TryRemoveChildrenError,
@@ -46,10 +47,15 @@ where
     pub unsafe fn new_raw_unchecked(tree: &'a BinaryTree<B, L, K, S>, key: K) -> Self {
         Self {tree, key}
     }
-    /// Returns the raw storage key for the node.
+    /// Returns a reference the raw storage key for the node.
     #[inline(always)]
-    pub fn raw_key(&self) -> K {
-        self.key.clone()
+    pub fn raw_key(&self) -> &K {
+        &self.key
+    }
+    /// Consumes the reference and returns the underlying raw storage key for the node.
+    #[inline(always)]
+    pub fn into_raw_key(self) -> K {
+        self.key
     }
     /// Returns a reference to the parent node of the pointee, or `None` if it's the root node.
     #[inline]
@@ -213,10 +219,15 @@ where
     pub unsafe fn new_raw_unchecked(tree: &'a mut BinaryTree<B, L, K, S>, key: K) -> Self {
         Self {tree, key}
     }
-    /// Returns the raw storage key for the node.
+    /// Returns a reference to the raw storage key for the node.
     #[inline(always)]
-    pub fn raw_key(&self) -> K {
-        self.key.clone()
+    pub fn raw_key(&self) -> &K {
+        &self.key
+    }
+    /// Consumes the reference and returns the underlying raw storage key for the node.
+    #[inline(always)]
+    pub fn into_raw_key(self) -> K {
+        self.key
     }
     /// Returns a reference to the parent node of the pointee, or `None` if it's the root node.
     #[inline]
@@ -305,14 +316,14 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             Self::new_raw_unchecked(self.tree, x)
         })
     }
-    /// Attempts to remove a leaf node without using recursion. If its parent only had one child, it's replaced with a leaf node, the value for which is provided by the specified closure.
+    /// Attempts to remove a leaf node without using recursion. If its parent only had one child, it's replaced with a leaf node, the value for which is provided by the specified closure (the previous value is passed into the closure).
     ///
     /// # Errors
     /// Will fail in the following scenarios:
     /// - The node was a branch node, which would require recursion to remove, and this function explicitly does not implement recursive removal.
     /// - The node was the root node, which can never be removed.
-    pub fn try_remove_leaf_with<F>(self, f: F) -> Result<L, TryRemoveLeafError>
-    where F: FnOnce() -> L {
+    pub fn try_remove_leaf_with<F>(&mut self, f: F) -> Result<L, TryRemoveLeafError>
+    where F: FnOnce(B) -> L {
         if matches!(&self.node().value, NodeData::Branch {..}) {
             return Err(TryRemoveLeafError::WasBranchNode)
         }
@@ -321,30 +332,42 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             .as_ref()
             .cloned()
             .ok_or(TryRemoveLeafError::WasRootNode)?;
-        let (left_child, right_child) = match unsafe {
+        let (parent_left_child, parent_right_child, parent_payload) = match unsafe {
             // SAFETY: parent key is guaranteed to be valid
             &mut self.tree.storage.get_unchecked_mut(&parent_key).value
         } {
-            NodeData::Branch {left_child, right_child, ..} => (left_child, right_child),
+            NodeData::Branch {left_child, right_child, payload} => (
+                left_child,
+                right_child,
+                payload,
+            ),
             NodeData::Leaf(..) => unsafe {
                 // SAFETY: cannot have leaf node as parent
                 hint::unreachable_unchecked()
             }
         };
-        if &self.key == left_child {
-            if let Some(right_child_ref) = right_child {
-                mem::swap(left_child, right_child_ref);
-                *right_child = None;
+        if &self.key == parent_left_child {
+            if let Some(right_child_ref) = parent_right_child {
+                mem::swap(parent_left_child, right_child_ref);
+                *parent_right_child = None;
             } else {
+                let old_payload = unsafe {
+                    // SAFETY: the pointer is coerced from a reference and therefore is required to
+                    // be valid; we're also overwriting this, so no duplication
+                    ptr::read(parent_payload)
+                };
                 // Destroy the mutable references to modify parent
-                drop((left_child, right_child));
-                *unsafe {
+                drop((parent_left_child, parent_right_child));
+                unsafe {
                     // SAFETY: as above
-                    &mut self.tree.storage.get_unchecked_mut(&parent_key).value
-                } = NodeData::Leaf(f());
+                    ptr::write(
+                        &mut self.tree.storage.get_unchecked_mut(&parent_key).value,
+                        NodeData::Leaf(f(old_payload)),
+                    );
+                }
             }
-        } else if Some(&self.key) == right_child.as_ref() {
-            *right_child = None;
+        } else if Some(&self.key) == parent_right_child.as_ref() {
+            *parent_right_child = None;
         } else {
             unsafe {
                 // SAFETY: a node cannot have a parent which does not list it as one
@@ -364,7 +387,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             },
         }
     }
-    /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, the value for which is provided by the specified closure.
+    /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, the value for which is provided by the specified closure (the previous value is passed into the closure).
     ///
     /// # Errors
     /// Will fail in the following scenarios:
@@ -375,7 +398,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         &mut self,
         f: F,
     ) -> Result<(B, L, Option<L>), TryRemoveBranchError>
-    where F: FnOnce() -> L {
+    where F: FnOnce(B) -> L {
         match &self.node().value {
             NodeData::Branch {left_child, right_child, ..} => {
                 let (left_child_ref, right_child_ref) = unsafe {
@@ -390,9 +413,10 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                         ),
                     )
                 };
-                if left_child_ref.is_branch()
-                        || (right_child_ref.map(|x| x.is_branch()) == Some(true)) {
-                    return Err(TryRemoveBranchError::HadBranchChild)
+                if left_child_ref.is_branch() {
+                    return Err(TryRemoveBranchError::HadBranchChild(0))
+                } else if right_child_ref.as_ref().map(NodeRef::is_branch) == Some(true) {
+                    return Err(TryRemoveBranchError::HadBranchChild(1))
                 }
             },
             NodeData::Leaf(..) => return Err(TryRemoveBranchError::WasLeafNode),
@@ -402,30 +426,42 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             .as_ref()
             .cloned()
             .ok_or(TryRemoveBranchError::WasRootNode)?;
-        let (left_child, right_child) = match unsafe {
+        let (parent_left_child, parent_right_child, parent_payload) = match unsafe {
             // SAFETY: parent key is guaranteed to be valid
             &mut self.tree.storage.get_unchecked_mut(&parent_key).value
         } {
-            NodeData::Branch {left_child, right_child, ..} => (left_child, right_child),
+            NodeData::Branch {left_child, right_child, payload} => (
+                left_child,
+                right_child,
+                payload,
+            ),
             NodeData::Leaf(..) => unsafe {
                 // SAFETY: cannot have leaf node as parent
                 hint::unreachable_unchecked()
             }
         };
-        if &self.key == left_child {
-            if let Some(right_child_ref) = right_child {
-                mem::swap(left_child, right_child_ref);
-                *right_child = None;
+        if &self.key == parent_left_child {
+            if let Some(parent_right_child_ref) = parent_right_child {
+                mem::swap(parent_left_child, parent_right_child_ref);
+                *parent_right_child = None;
             } else {
+                let old_payload = unsafe {
+                    // SAFETY: the pointer is coerced from a reference and therefore is required to
+                    // be valid; we're also overwriting this, so no duplication
+                    ptr::read(parent_payload)
+                };
                 // Destroy the mutable references to modify parent
-                drop((left_child, right_child));
-                *unsafe {
+                drop((parent_left_child, parent_right_child));
+                unsafe {
                     // SAFETY: as above
-                    &mut self.tree.storage.get_unchecked_mut(&parent_key).value
-                } = NodeData::Leaf(f());
+                    ptr::write(
+                        &mut self.tree.storage.get_unchecked_mut(&parent_key).value,
+                        NodeData::Leaf(f(old_payload)),
+                    );
+                }
             }
-        } else if Some(&self.key) == right_child.as_ref() {
-            *right_child = None;
+        } else if Some(&self.key) == parent_right_child.as_ref() {
+            *parent_right_child = None;
         } else {
             unsafe {
                 // SAFETY: a node cannot have a parent which does not list it as one
@@ -483,9 +519,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     pub fn try_remove_children_with<F>(
         &mut self,
         f: F,
-    ) -> Result<(B, L, Option<L>), TryRemoveChildrenError>
-    where F: FnOnce() -> L {
-        let (left_child_key, right_child_key) = match &self.node().value {
+    ) -> Result<(L, Option<L>), TryRemoveChildrenError>
+    where F: FnOnce(B) -> L {
+        let (left_child_key, right_child_key, ..) = match &self.node().value {
             NodeData::Branch {left_child, right_child, ..} => {
                 let (left_child_ref, right_child_ref) = unsafe {
                     // SAFETY: both keys are required to be valid
@@ -499,11 +535,15 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                         ),
                     )
                 };
-                if left_child_ref.is_branch()
-                    || (right_child_ref.as_ref().map(NodeRef::is_branch) == Some(true)) {
-                    return Err(TryRemoveChildrenError::HadBranchChild)
+                if left_child_ref.is_branch() {
+                    return Err(TryRemoveChildrenError::HadBranchChild(0))
+                } else if right_child_ref.as_ref().map(NodeRef::is_branch) == Some(true) {
+                    return Err(TryRemoveChildrenError::HadBranchChild(1))
                 }
-                (left_child_ref.key, right_child_ref.map(|x| x.key))
+                (
+                    left_child_ref.key,
+                    right_child_ref.map(|x| x.key),
+                )
             },
             NodeData::Leaf(..) => return Err(TryRemoveChildrenError::WasLeafNode),
         };
@@ -523,15 +563,23 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 },
             }
         });
-        let old_value = mem::replace(&mut self.node_mut().value, NodeData::Leaf(f()));
-        let old_payload = match old_value {
+        let old_payload_ref = match &mut self.node_mut().value {
             NodeData::Branch {payload, ..} => payload,
             NodeData::Leaf(..) => unsafe {
                 // SAFETY: we checked for a leaf node in the beginning
                 hint::unreachable_unchecked()
             },
         };
-        Ok((old_payload, left_child_payload, right_child_payload))
+        let old_payload = unsafe {
+            // SAFETY: the pointer is coerced from a reference and therefore is required to
+            // be valid; we're also overwriting this, so no duplication
+            ptr::read(old_payload_ref)
+        };
+        unsafe {
+            // SAFETY: as above
+            ptr::write(&mut self.node_mut().value, NodeData::Leaf(f(old_payload)));
+        }
+        Ok((left_child_payload, right_child_payload))
     }
     /// Adds two leaf children to the node, or, if it already has one or two, overwrites the existing ones. If the node was a leaf before, the old value is returned and replaced with a new branch payload; if it was a branch, the old branch value is returned.
     pub fn set_children_and_payload(&'_ mut self, new_payload: B, new_children: [L; 2]) -> NodeValue<B, L> {
@@ -600,67 +648,9 @@ where
     /// Will fail in the following scenarios:
     /// - The node was a branch node, which would require recursion to remove, and this function explicitly does not implement recursive removal.
     /// - The node was the root node, which can never be removed.
-    pub fn try_remove_leaf(self) -> Result<D, TryRemoveLeafError> {
-        if matches!(&self.node().value, NodeData::Branch {..}) {
-            return Err(TryRemoveLeafError::WasBranchNode)
-        }
-        let parent_key = self.node()
-            .parent
-            .as_ref()
-            .cloned()
-            .ok_or(TryRemoveLeafError::WasRootNode)?;
-        let (left_child, right_child, payload) = match unsafe {
-            // SAFETY: parent key is guaranteed to be valid
-            &mut self.tree.storage.get_unchecked_mut(&parent_key).value
-        } {
-            NodeData::Branch {left_child, right_child, payload} => {
-                (left_child, right_child, payload)
-            }
-            NodeData::Leaf(..) => unsafe {
-                // SAFETY: cannot have leaf node as parent
-                hint::unreachable_unchecked()
-            },
-        };
-        if &self.key == left_child {
-            if let Some(right_child_ref) = right_child {
-                mem::swap(left_child, right_child_ref);
-                *right_child = None;
-            } else {
-                // Destroy the mutable references to modify parent
-                drop((left_child, right_child));
-                let payload = unsafe {
-                    // SAFETY: we're overwriting the memory right afterwards, and
-                    // the pointer comes from a reference and therefore is valid
-                    ptr::read(payload)
-                };
-                unsafe {
-                    // SAFETY: we're overwriting what we just read, which is
-                    // still behind a reference and still valid
-                    let value_ptr = &mut self.tree.storage.get_unchecked_mut(
-                        &parent_key
-                    ).value;
-                    ptr::write(value_ptr, NodeData::Leaf(payload));
-                }
-            }
-        } else if Some(&self.key) == right_child.as_ref() {
-            *right_child = None;
-        } else { unsafe {
-            // SAFETY: a node cannot have a parent which does not list it as one
-            // of its children
-            if cfg!(debug_assertions) {
-                panic!("\
-failed to identify whether the node is the left or right child");
-            }
-            hint::unreachable_unchecked()
-        }}
-        let key = self.key.clone();
-        match self.tree.storage.remove(&key).value {
-            NodeData::Leaf(x) => Ok(x),
-            NodeData::Branch {..} => unsafe {
-                // SAFETY: the outer match tests for self being a branch node
-                hint::unreachable_unchecked()
-            },
-        }
+    #[inline(always)]
+    pub fn try_remove_leaf(&mut self) -> Result<D, TryRemoveLeafError> {
+        self.try_remove_leaf_with(convert::identity)
     }
     /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, keeping its original payload. *This method is only available when the payload for leaf nodes and branch nodes is the same.*
     ///
@@ -669,117 +659,11 @@ failed to identify whether the node is the left or right child");
     /// - The node was a leaf node. The `try_remove_leaf`/`try_remove_leaf_with` methods exist for that.
     /// - The node was the root node, which can never be removed.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
+    #[inline(always)]
     pub fn try_remove_branch(
         &mut self,
     ) -> Result<(D, D, Option<D>), TryRemoveBranchError> {
-        match &self.node().value {
-            NodeData::Branch {left_child, right_child, ..} => {
-                let (left_child_ref, right_child_ref) = unsafe {
-                    // SAFETY: both keys are required to be valid
-                    (
-                        NodeRef::new_raw_unchecked(self.tree, left_child.clone()),
-                        right_child.as_ref().map(
-                            |right_child| NodeRef::new_raw_unchecked(
-                                self.tree,
-                                right_child.clone(),
-                            )
-                        ),
-                    )
-                };
-                if left_child_ref.is_branch()
-                        || (right_child_ref.map(|x| x.is_branch()) == Some(true)) {
-                    return Err(TryRemoveBranchError::HadBranchChild)
-                }
-            },
-            NodeData::Leaf(..) => return Err(TryRemoveBranchError::WasLeafNode),
-        }
-        let parent_key = self.node()
-            .parent
-            .as_ref()
-            .cloned()
-            .ok_or(TryRemoveBranchError::WasRootNode)?;
-        let (left_child, right_child, payload) = match unsafe {
-            // SAFETY: parent key is guaranteed to be valid
-            &mut self.tree.storage.get_unchecked_mut(&parent_key).value
-        } {
-            NodeData::Branch {left_child, right_child, payload} => (
-                left_child, right_child, payload,
-            ),
-            NodeData::Leaf(..) => unsafe {
-                // SAFETY: cannot have leaf node as parent
-                hint::unreachable_unchecked()
-            }
-        };
-        if &self.key == left_child {
-            if let Some(right_child_ref) = right_child {
-                mem::swap(left_child, right_child_ref);
-                *right_child = None;
-            } else {
-                // Destroy the mutable references to modify parent
-                drop((left_child, right_child));
-                let payload = unsafe {
-                    // SAFETY: we're overwriting the memory right afterwards, and
-                    // the pointer comes from a reference and therefore is valid
-                    ptr::read(payload)
-                };
-                unsafe {
-                    // SAFETY: we're overwriting what we just read, which is
-                    // still behind a reference and still valid
-                    let value_ptr = &mut self.tree.storage.get_unchecked_mut(
-                        &parent_key
-                    ).value;
-                    ptr::write(value_ptr, NodeData::Leaf(payload));
-                }
-            }
-        } else if Some(&self.key) == right_child.as_ref() {
-            *right_child = None;
-        } else {
-            unsafe {
-                // SAFETY: a node cannot have a parent which does not list it as one
-                // of its children
-                if cfg!(debug_assertions) {
-                    panic!("failed to identify whether the node is the left or right child");
-                }
-                hint::unreachable_unchecked()
-            }
-        }
-        let key = self.key.clone();
-        let (
-            old_payload,
-            left_child_key,
-            right_child_key,
-        ) = match self.tree.storage.remove(&key).value {
-            NodeData::Branch {
-                payload: old_payload,
-                left_child: left_child_key,
-                right_child: right_child_key,
-            } => (
-                old_payload,
-                left_child_key,
-                right_child_key,
-            ),
-            NodeData::Leaf(..) => unsafe {
-                // SAFETY: the beggining of the function tests for self being a branch node
-                hint::unreachable_unchecked()
-            },
-        };
-        let left_child_payload = match self.tree.storage.remove(&left_child_key).value {
-            NodeData::Leaf(x) => x,
-            NodeData::Branch {..} => unsafe {
-                // SAFETY: a check for branch children was made at the beginning
-                hint::unreachable_unchecked()
-            },
-        };
-        let right_child_payload = right_child_key.map(|right_child_key| {
-            match self.tree.storage.remove(&right_child_key).value {
-                NodeData::Leaf(x) => x,
-                NodeData::Branch {..} => unsafe {
-                    // SAFETY: as above
-                    hint::unreachable_unchecked()
-                },
-            }
-        });
-        Ok((old_payload, left_child_payload, right_child_payload))
+        self.try_remove_branch_with(convert::identity)
     }
     /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, keeping its original payload. *This method is only available when the payload for leaf nodes and branch nodes is the same.*
     ///
@@ -787,71 +671,12 @@ failed to identify whether the node is the left or right child");
     /// Will fail in the following scenarios:
     /// - The node was a leaf node, which cannot have children by definition.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
+    #[inline(always)]
     pub fn try_remove_children(
         &mut self,
     ) -> Result<(D, Option<D>), TryRemoveChildrenError> {
-        let (left_child_key, right_child_key) = match &self.node().value {
-            NodeData::Branch {left_child, right_child, ..} => {
-                let (left_child_ref, right_child_ref) = unsafe {
-                    // SAFETY: both keys are required to be valid
-                    (
-                        NodeRef::new_raw_unchecked(self.tree, left_child.clone()),
-                        right_child.as_ref().map(
-                            |right_child| NodeRef::new_raw_unchecked(
-                                self.tree,
-                                right_child.clone(),
-                            )
-                        ),
-                    )
-                };
-                if left_child_ref.is_branch()
-                    || (right_child_ref.as_ref().map(NodeRef::is_branch) == Some(true)) {
-                    return Err(TryRemoveChildrenError::HadBranchChild)
-                }
-                (left_child_ref.key, right_child_ref.map(|x| x.key))
-            },
-            NodeData::Leaf(..) => return Err(TryRemoveChildrenError::WasLeafNode),
-        };
-        let left_child_payload = match self.tree.storage.remove(&left_child_key).value {
-            NodeData::Leaf(x) => x,
-            NodeData::Branch {..} => unsafe {
-                // SAFETY: a check for branch children was made at the beginning
-                hint::unreachable_unchecked()
-            },
-        };
-        let right_child_payload = right_child_key.map(|right_child_key| {
-            match self.tree.storage.remove(&right_child_key).value {
-                NodeData::Leaf(x) => x,
-                NodeData::Branch {..} => unsafe {
-                    // SAFETY: as above
-                    hint::unreachable_unchecked()
-                },
-            }
-        });
-        let own_key = &self.key;
-        let payload = unsafe {
-            // SAFETY: we're overwriting the memory right afterwards, and the pointer comes from a
-            // reference and therefore is valid; the get_unchecked_mut is also safe because the
-            // key of `self` is assumed to be valid
-            ptr::read(match &self.tree.storage.get_unchecked(own_key).value {
-                NodeData::Branch {payload, ..} => payload,
-                NodeData::Leaf(..) => {
-                    // SAFETY: we checked for `self` being a leaf node in the beginning
-                    hint::unreachable_unchecked()
-                },
-            })
-        };
-        unsafe {
-            // SAFETY: we're overwriting what we just read, which is
-            // still behind a reference and still valid
-            let value_ptr = &mut self.tree.storage.get_unchecked_mut(
-                own_key,
-            ).value;
-            ptr::write(value_ptr, NodeData::Leaf(payload));
-        }
-        Ok((left_child_payload, right_child_payload))
+        self.try_remove_children_with(convert::identity)
     }
-    // TODO try_remove_branch and try_remove_children
 }
 impl<'a, B, L, K, S> From<&'a NodeRefMut<'a, B, L, K, S>> for NodeValue<&'a B, &'a L>
 where
