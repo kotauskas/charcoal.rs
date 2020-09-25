@@ -8,8 +8,12 @@ mod recursive_removal;
 pub use recursive_removal::*;
 
 use super::{
-    Visitor, VisitorMut,
-    Traversable, TraversableMut,
-    Step, VisitorDirection,
+    Visitor,
+    VisitorMut,
+    Traversable,
+    TraversableMut,
+    Step,
+    VisitorDirection,
+    CursorResult,
     CursorDirectionError,
 };

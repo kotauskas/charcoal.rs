@@ -12,6 +12,9 @@ use crate::{
         VisitorDirection, CursorDirectionError,
     },
     NodeValue,
+    TryRemoveBranchError,
+    TryRemoveLeafError,
+    TryRemoveChildrenError,
 };
 
 mod node;
@@ -101,34 +104,48 @@ where
     fn advance_cursor<V>(
         &self,
         cursor: Self::Cursor,
-        direction: VisitorDirection<V>,
-    ) -> Result<Self::Cursor, CursorDirectionError> {
+        direction: VisitorDirection<Self::Cursor, V>,
+    ) -> Result<Self::Cursor, CursorDirectionError<Self::Cursor>> {
+        // Create the error in advance to avoid duplication
+        let error = CursorDirectionError {previous_state: cursor.clone()};
         let node = NodeRef::new_raw(self, cursor)
             .expect("the node specified by the cursor does not exist");
         match direction {
             VisitorDirection::Parent => {
-                node.parent().ok_or(CursorDirectionError).map(|x| x.raw_key())
+                node.parent()
+                    .ok_or(error)
+                    .map(NodeRef::into_raw_key)
             },
             VisitorDirection::NextSibling => todo!(), // TODO
             VisitorDirection::Child(num) => match num {
                 0 => node.left_child()
-                    .ok_or(CursorDirectionError)
-                    .map(|x| x.raw_key()),
+                    .ok_or(error)
+                    .map(NodeRef::into_raw_key),
                 1 => node.right_child()
-                    .ok_or(CursorDirectionError)
-                    .map(|x| x.raw_key()),
-                _ => Err(CursorDirectionError),
+                    .ok_or(error)
+                    .map(NodeRef::into_raw_key),
+                _ => Err(error),
             },
-            VisitorDirection::Stop(_) => Err(CursorDirectionError),
+            VisitorDirection::SetTo(new_cursor) => {
+                if self.storage.contains_key(&new_cursor) {
+                    Ok(new_cursor)
+                } else {
+                    // Do not allow returning invalid cursors, as those will cause panicking
+                    Err(error)
+                }
+            },
+            VisitorDirection::Stop(..) => Err(error),
         }
     }
     #[inline(always)]
     fn cursor_to_root(&self) -> Self::Cursor {
         self.root.clone()
     }
-    fn value_at(
+    #[inline]
+    #[track_caller]
+    fn value_of(
         &self,
-        cursor: Self::Cursor,
+        cursor: &Self::Cursor,
     ) -> NodeValue<&'_ Self::Branch, &'_ Self::Leaf> {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
@@ -136,7 +153,7 @@ where
     }
     #[inline]
     #[track_caller]
-    fn num_children_at(&self, cursor: Self::Cursor) -> usize {
+    fn num_children_of(&self, cursor: &Self::Cursor) -> usize {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
         if node_ref.is_full_branch() {
@@ -144,6 +161,28 @@ where
         } else if node_ref.is_branch() {
             1
         } else {0}
+    }
+    #[inline]
+    #[track_caller]
+    fn parent_of(&self, cursor: &Self::Cursor) -> Option<Self::Cursor> {
+        let node_ref = NodeRef::new_raw(self, cursor.clone())
+            .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
+        node_ref.parent().map(NodeRef::into_raw_key)
+    }
+    #[inline]
+    #[track_caller]
+    fn nth_child_of(&self, cursor: &Self::Cursor, child_num: usize) -> Option<Self::Cursor> {
+        let node_ref = NodeRef::new_raw(self, cursor.clone())
+            .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
+        match child_num {
+            0 => {
+                node_ref.left_child().map(NodeRef::into_raw_key)
+            },
+            1 => {
+                node_ref.right_child().map(NodeRef::into_raw_key)
+            },
+            _ => None,
+        }
     }
 }
 impl<B, L, K, S> TraversableMut for BinaryTree<B, L, K, S>
@@ -154,9 +193,9 @@ where
     #[inline(always)]
     fn value_mut_at(
         &mut self,
-        cursor: Self::Cursor,
+        cursor: &Self::Cursor,
     ) -> NodeValue<&'_ mut Self::Branch, &'_ mut Self::Leaf> {
-        self.storage.get_mut(&cursor)
+        self.storage.get_mut(cursor)
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
             .value
             .as_mut()
@@ -165,10 +204,10 @@ where
     #[inline(always)]
     fn try_remove_leaf_with<F>(
         &mut self,
-        cursor: Self::Cursor,
+        cursor: &Self::Cursor,
         f: F,
-    ) -> Result<Self::Leaf, crate::TryRemoveLeafError>
-    where F: FnOnce() -> Self::Leaf {
+    ) -> Result<Self::Leaf, TryRemoveLeafError>
+    where F: FnOnce(Self::Branch) -> Self::Leaf {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
             .try_remove_leaf_with(f)
@@ -177,10 +216,10 @@ where
     #[allow(clippy::type_complexity)]
     fn try_remove_branch_with<F>(
         &mut self,
-        cursor: Self::Cursor,
+        cursor: &Self::Cursor,
         f: F,
-    ) -> Result<(Self::Branch, Self::Leaf, Option<Self::Leaf>), crate::TryRemoveBranchError>
-    where F: FnOnce() -> Self::Leaf {
+    ) -> Result<(Self::Branch, Self::Leaf, Option<Self::Leaf>), TryRemoveBranchError>
+    where F: FnOnce(Self::Branch) -> Self::Leaf {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
             .try_remove_branch_with(f)
@@ -189,13 +228,13 @@ where
     #[allow(clippy::type_complexity)]
     fn try_remove_children_with<F>(
         &mut self,
-        cursor: Self::Cursor,
+        cursor: &Self::Cursor,
         f: F,
-    ) -> Result<(Self::Branch, Self::Leaf, Option<Self::Leaf>), crate::TryRemoveChildrenError>
-    where F: FnOnce() -> Self::Leaf {
+    ) -> Result<(), TryRemoveChildrenError>
+    where F: FnOnce(Self::Branch) -> Self::Leaf {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
-            .try_remove_children_with(f)
+            .try_remove_children_with(f).map(|_| ())
     }
 }
 impl<B, L, K, S> Default for BinaryTree<B, L, K, S>

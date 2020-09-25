@@ -3,3 +3,5 @@ where_same_line = true
 # I have my imports sorted in the best way possible, and thus rustfmt
 # is not allowed to shatter this divine harmony.
 reorder_imports = false
+# This is also bullshit.
+imports_layout = "HorizontalVertical"

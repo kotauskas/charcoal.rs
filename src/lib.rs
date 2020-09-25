@@ -105,12 +105,8 @@
     clippy::unused_self,
     clippy::used_underscore_binding,
 )]
-#![deny(
-    anonymous_parameters,
-    bare_trait_objects,
-)]
+#![deny(anonymous_parameters, bare_trait_objects)]
 #![allow(clippy::use_self)] // FIXME reenable when it gets fixed
-
 #![cfg_attr(not(feature = "std"), no_std)]
 // TODO reimplement LinkedList
 //#![cfg_attr(feature = "linked_list_storage", feature(linked_list_cursors))]
@@ -136,22 +132,19 @@ pub mod prelude {
     pub use crate::binary_tree::BinaryTree;
 }
 
-#[cfg(any(feature = "smallvec_storage", feature = "arrayvec_storage"))]
+/*#[cfg(any(feature = "smallvec_storage", feature = "arrayvec_storage"))]
 const INLINE_STACK_SIZE: usize = 128;
 
 #[cfg(feature = "smallvec_storage")]
 pub(crate) type Stack<T> = smallvec::SmallVec<[T; INLINE_STACK_SIZE]>;
-#[cfg(all(
-    feature = "alloc",
-    not(feature = "smallvec_storage"),
-))]
+#[cfg(all(feature = "alloc", not(feature = "smallvec_storage")))]
 pub(crate) type Stack<T> = alloc::vec::Vec<T>;
 #[cfg(all(
     feature = "arrayvec_storage",
     not(feature = "smallvec_storage"),
     not(feature = "alloc"),
 ))]
-pub(crate) type Stack<T> = arrayvec::ArrayVec<[T; INLINE_STACK_SIZE]>;
+pub(crate) type Stack<T> = arrayvec::ArrayVec<[T; INLINE_STACK_SIZE]>;*/
 
 use core::fmt::{self, Formatter, Display};
 
@@ -189,8 +182,8 @@ pub enum TryRemoveLeafError {
     WasRootNode,
     /// The node was a branch node and thus would require recursion to remove.
     WasBranchNode,
-    /// The tree does not support removing individual leaves or such support was manually disabled.
-    CannotRemoveLeaves,
+    /// The tree does not support removing individual children or such support was manually disabled.
+    CannotRemoveIndividualChildren,
 }
 impl Display for TryRemoveLeafError {
     #[inline]
@@ -198,7 +191,9 @@ impl Display for TryRemoveLeafError {
         f.write_str(match self {
             Self::WasRootNode => "cannot remove the root node of a tree",
             Self::WasBranchNode => "cannot remove branch nodes without recursion",
-            Self::CannotRemoveLeaves => "removing individual leaves is not available for the tree",
+            Self::CannotRemoveIndividualChildren => {
+                "removing individual children is not available for the tree"
+            }
         })
     }
 }
@@ -212,8 +207,10 @@ pub enum TryRemoveBranchError {
     WasRootNode,
     /// The node a leaf node and thus should be removed with `try_remove_leaf_with` or a similar method.
     WasLeafNode,
-    /// One of the node's children was a branch node, which would require recursion to remove.
-    HadBranchChild,
+    /// One of the node's children was a branch node, which would require recursion to remove. Contains the index of the offending node; if there were multiple, the smallest index is specified.
+    HadBranchChild(u32),
+    /// The tree does not support removing individual children or such support was manually disabled.
+    CannotRemoveIndividualChildren,
 }
 impl Display for TryRemoveBranchError {
     #[inline]
@@ -221,8 +218,24 @@ impl Display for TryRemoveBranchError {
         f.write_str(match self {
             Self::WasRootNode => "cannot remove the root node of a tree",
             Self::WasLeafNode => "expected a branch node, found leaf",
-            Self::HadBranchChild
-            => "node had branch children, which cannot be removed without recursion",
+            Self::HadBranchChild(index) => {
+                #[cfg(feature = "alloc")]
+                {
+                    return f.write_str(&format!(
+                        "\
+node had a branch child (index {}), which cannot be removed without recursion",
+                        index,
+                    ));
+                }
+                #[cfg(not(feature = "alloc"))]
+                {
+                    "\
+node had a branch child, which cannot be removed without recursion"
+                }
+            },
+            Self::CannotRemoveIndividualChildren => {
+                "removing individual children is not available for the tree"
+            },
         })
     }
 }
@@ -234,16 +247,29 @@ impl std::error::Error for TryRemoveBranchError {}
 pub enum TryRemoveChildrenError {
     /// The node a leaf node and thus cannot have children by definition.
     WasLeafNode,
-    /// One of the node's children was a branch node, which would require recursion to remove.
-    HadBranchChild,
+    /// One of the node's children was a branch node, which would require recursion to remove. Contains the index of the offending node; if there were multiple, the smallest index is specified.
+    HadBranchChild(u32),
 }
 impl Display for TryRemoveChildrenError {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::WasLeafNode => "expected a branch node, found leaf",
-            Self::HadBranchChild
-            => "node had branch children, which cannot be removed without recursion",
+            Self::HadBranchChild(index) => {
+                #[cfg(feature = "alloc")]
+                {
+                    return f.write_str(&format!(
+                        "\
+node had a branch child (index {}), which cannot be removed without recursion",
+                        index,
+                    ));
+                }
+                #[cfg(not(feature = "alloc"))]
+                {
+                    "\
+node had a branch child, which cannot be removed without recursion"
+                }
+            }
         })
     }
 }
