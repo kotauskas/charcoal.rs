@@ -8,8 +8,10 @@ use core::{
 use crate::{
     TryRemoveLeafError, TryRemoveBranchError, TryRemoveChildrenError,
     storage::{Storage, DefaultStorage},
+    traversal::algorithms,
     NodeValue,
 };
+use arrayvec::ArrayVec;
 use super::{BinaryTree, Node, NodeData};
 
 /// A reference to a node in a binary tree.
@@ -581,27 +583,99 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         }
         Ok((left_child_payload, right_child_payload))
     }
-    /// Adds two leaf children to the node, or, if it already has one or two, overwrites the existing ones. If the node was a leaf before, the old value is returned and replaced with a new branch payload; if it was a branch, the old branch value is returned.
-    pub fn set_children_and_payload(&'_ mut self, new_payload: B, new_children: [L; 2]) -> NodeValue<B, L> {
-        let [new_left_child, new_right_child] = new_children;
-        let left_child_key = self.tree.storage.add(
-            unsafe {
-                // SAFETY: the following invariants are upheld:
-                // - we're evidently not creating a second root node
-                // - parent is valid because the key of self is assumed to be valid
-                Node::leaf(new_left_child, Some(self.key.clone()))
-            }
-        );
-        let right_child_key = self.tree.storage.add(
-            unsafe {
-                // SAFETY: as above
-                Node::leaf(new_right_child, Some(self.key.clone()))
-            }
-        );
+    /// Recursively removes the specified node and all its descendants, using a closure to patch nodes which transition from having one child to having zero children.
+    #[inline(always)]
+    pub fn recursively_remove_with<F: FnMut(B) -> L>(self, f: F) -> NodeValue<B, L> {
+        algorithms::recursively_remove_with(self.tree, self.key, f)
+    }
+    /// Sets the children of the node to specified zero, one or two children. If there were children before and the method would otherwise drop them, they are instead bundled and returned.
+    ///
+    /// If the node was a leaf before and adding one or more children is requested, the old value is passed to first closure and replaced with a new branch payload; if it was a branch before and removing all children is requested, the old value is passed to the second closure and replaced with a new leaf payload.
+    #[allow(clippy::shadow_unrelated)] // bullshit lint
+    pub fn set_children_with<LtB: FnMut(L) -> B, BtL: FnMut(B) -> L>(
+        &'_ mut self,
+        new_children: ArrayVec<[L; 2]>,
+        mut leaf_to_branch: LtB,
+        mut branch_to_leaf: BtL,
+    ) -> ArrayVec<[NodeValue<B, L>; 2]> {
+        let (new_left_child, new_right_child) = {
+            let mut new_children = new_children.into_iter();
+            (
+                new_children.next(),
+                new_children.next(),
+            )
+        };
+        let new_left_child_key = new_left_child.map(|new_left_child| {
+            self.tree.storage.add(
+                unsafe {
+                    // SAFETY: the following invariants are upheld:
+                    // - we're evidently not creating a second root node
+                    // - parent is valid because the key of self is assumed to be valid
+                    Node::leaf(new_left_child, Some(self.key.clone()))
+                }
+            )
+        });
+        let new_right_child_key = new_right_child.map(|new_right_child| {
+            self.tree.storage.add(
+                unsafe {
+                    // SAFETY: as above
+                    Node::leaf(new_right_child, Some(self.key.clone()))
+                }
+            )
+        });
+        let new_children_keys = new_left_child_key.map(|new_left_child_key| (
+            new_left_child_key,
+            new_right_child_key,
+        ));
         let node = self.node_mut();
         let parent = node.parent.clone();
         match &mut node.value {
-            NodeData::Branch {payload, left_child, right_child} => todo!(), // TODO
+            NodeData::Branch {payload, left_child, right_child} => {
+                let old_val_owned = unsafe {
+                    // SAFETY: we're overwriting this afterwards
+                    ptr::read(payload)
+                };
+                // why do a whole ptr::read when you can do something that results
+                // exactly the same in codegen?
+                let left_child = left_child.clone();
+                let right_child = right_child.clone();
+                let left_child_owned = algorithms::recursively_remove_with(
+                    self.tree,
+                    left_child,
+                    &mut branch_to_leaf,
+                );
+                let right_child_owned = right_child.map(|right_child| {
+                    algorithms::recursively_remove_with(
+                        self.tree,
+                        right_child,
+                        &mut branch_to_leaf,
+                    )
+                });
+                let node = self.node_mut();
+                unsafe {
+                    // SAFETY: pointer comes from a reference and therefore is valid
+                    ptr::write::<Node<B, L, K>>(
+                        node,
+                        match new_children_keys {
+                            Some((l, Some(r))) => {
+                                Node::full_branch(old_val_owned, [l, r], parent)
+                            },
+                            Some((c, None)) => {
+                                Node::partial_branch(old_val_owned, c, parent)
+                            },
+                            None => {
+                                Node::leaf(branch_to_leaf(old_val_owned), parent)
+                            },
+                        },
+                    );
+                }
+                let mut old_children = ArrayVec::new();
+                old_children.push(left_child_owned);
+                if let Some(right_child_owned) = right_child_owned {
+                    old_children.push(right_child_owned);
+                }
+                old_children
+            },
             NodeData::Leaf(old_val) => {
                 let old_val_owned = unsafe {
                     // SAFETY: we're overwriting this right below
@@ -611,14 +685,21 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     // SAFETY: pointer comes from a reference and therefore is valid
                     ptr::write::<Node<B, L, K>>(
                         node,
-                        Node::full_branch(
-                            new_payload,
-                            [left_child_key, right_child_key],
-                            parent,
-                        ),
+                        match new_children_keys {
+                            Some((l, Some(r))) => {
+                                Node::full_branch(leaf_to_branch(old_val_owned), [l, r], parent)
+                            },
+                            Some((c, None)) => {
+                                Node::partial_branch(leaf_to_branch(old_val_owned), c, parent)
+                            },
+                            None => {
+                                Node::leaf(old_val_owned, parent)
+                            },
+                        },
                     );
                 }
-                NodeValue::Leaf(old_val_owned)
+                // There were no children, so we're returning an empty bundle
+                ArrayVec::new()
             },
         }
     }
@@ -642,7 +723,7 @@ impl<'a, D, K, S> NodeRefMut<'a, D, D, K, S>
 where
     S: Storage<Element = Node<D, D, K>, Key = K>,
     K: Clone + Debug + Eq {
-    /// Attempts to remove the node without using recursion. If the parent only had one child, it's replaced with a leaf node, keeping its original payload. *This method is only available when the payload for leaf nodes and branch nodes is the same.*
+    /// Attempts to remove the node without using recursion. If the parent only had one child, it's replaced with a leaf node, keeping its original payload, which is why *this method is only available when the payload for leaf nodes and branch nodes is the same.*
     ///
     /// # Errors
     /// Will fail in the following scenarios:
@@ -652,7 +733,7 @@ where
     pub fn try_remove_leaf(&mut self) -> Result<D, TryRemoveLeafError> {
         self.try_remove_leaf_with(convert::identity)
     }
-    /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, keeping its original payload. *This method is only available when the payload for leaf nodes and branch nodes is the same.*
+    /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, keeping its original payload, which is why *this method is only available when the payload for leaf nodes and branch nodes is the same.*
     ///
     /// # Errors
     /// Will fail in the following scenarios:
@@ -665,7 +746,7 @@ where
     ) -> Result<(D, D, Option<D>), TryRemoveBranchError> {
         self.try_remove_branch_with(convert::identity)
     }
-    /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, keeping its original payload. *This method is only available when the payload for leaf nodes and branch nodes is the same.*
+    /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, keeping its original payload. Because of that, *this method is only available when the payload for leaf nodes and branch nodes is the same.*
     ///
     /// # Errors
     /// Will fail in the following scenarios:
@@ -676,6 +757,21 @@ where
         &mut self,
     ) -> Result<(D, Option<D>), TryRemoveChildrenError> {
         self.try_remove_children_with(convert::identity)
+    }
+    /// Recursively removes the specified node and all its descendants. Will keep the original payload of the parent node if removing this node results in a transformation of the parent into a leaf, which is why *this method is only available when the payload for leaf nodes and branch nodes is the same.*
+    #[inline(always)]
+    pub fn recursively_remove(self) -> NodeValue<D> {
+        algorithms::recursively_remove(self.tree, self.key)
+    }
+    /// Sets the children of the node to specified zero, one or two children. If there were children before and the method would otherwise drop them, they are instead bundled and returned.
+    ///
+    /// If any nodes transition from leaf to branch or the other way around, their payload is preserved, which is why *this method is only available when the payload for leaf nodes and branch nodes is the same.*
+    #[inline(always)]
+    pub fn set_children(
+        &'_ mut self,
+        new_children: ArrayVec<[D; 2]>,
+    ) -> ArrayVec<[NodeValue<D>; 2]> {
+        self.set_children_with(new_children, convert::identity, convert::identity)
     }
 }
 impl<'a, B, L, K, S> From<&'a NodeRefMut<'a, B, L, K, S>> for NodeValue<&'a B, &'a L>
