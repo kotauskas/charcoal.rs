@@ -21,7 +21,7 @@
 pub mod algorithms;
 
 use core::{
-    iter::FusedIterator,
+    iter::{FusedIterator, FromIterator},
     fmt::{self, Formatter, Debug, Display},
     borrow::{Borrow, BorrowMut},
 };
@@ -183,6 +183,8 @@ pub trait Traversable: Sized {
 pub trait TraversableMut: Traversable {
     /// Whether the traversable allows removing individual children. This is `true` for trees which have a variable number of children for branches and `false` which don't.
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool;
+    /// The leaf children of a branch node, packed into an iterable.
+    type PackedChildren: IntoIterator<Item = Self::Leaf> + FromIterator<Self::Leaf>;
     /// Returns a *mutable* by-reference `NodeValue` of the node at the specified cursor, allowing modifications.
     fn value_mut_at(
         &mut self,
@@ -214,7 +216,7 @@ pub trait TraversableMut: Traversable {
         &mut self,
         cursor: &Self::Cursor,
         f: F,
-    ) -> Result<(Self::Branch, Self::Leaf, Option<Self::Leaf>), TryRemoveBranchError>
+    ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError>
     where
         F: FnOnce(Self::Branch) -> Self::Leaf;
     /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, the value for which is provided by the specified closure.
@@ -228,7 +230,7 @@ pub trait TraversableMut: Traversable {
         &mut self,
         cursor: &Self::Cursor,
         f: F,
-    ) -> Result<(), TryRemoveChildrenError>
+    ) -> Result<Self::PackedChildren, TryRemoveChildrenError>
     where
         F: FnOnce(Self::Branch) -> Self::Leaf;
 
@@ -267,10 +269,10 @@ pub trait TraversableMut: Traversable {
         Self::Cursor:
             From<<V::Target as Traversable>::Cursor> + Into<<V::Target as Traversable>::Cursor>,
     {
-        self.traverse_from_mut(self.cursor_to_root(), visitor)
+        self.traverse_mut_from(self.cursor_to_root(), visitor)
     }
     /// *Mutably* traverses the traversable from the specified starting point until the end, returning the final result of the visitor.
-    fn traverse_from_mut<V>(&mut self, starting_cursor: Self::Cursor, mut visitor: V) -> V::Output
+    fn traverse_mut_from<V>(&mut self, starting_cursor: Self::Cursor, mut visitor: V) -> V::Output
     where
         V: VisitorMut,
         for<'a> &'a mut Self: BorrowMut<V::Target>,
@@ -499,9 +501,9 @@ where
         if self.finished {
             return None;
         }
-        let cursor = self
-            .cursor
-            .take()
+        // Not using fully-qualified syntax breaks rust-analyzer because it thinks that I'm using
+        // the Iterator::take method which takes one argument
+        let cursor = Option::take(&mut self.cursor)
             .unwrap_or_else(|| Ok(self.traversable.cursor_to_root()));
         match self.traversable.step_mut(&mut self.visitor, cursor) {
             Step::NextCursor(c) => {
@@ -654,7 +656,7 @@ impl<T: Traversable> Traversable for &mut T {
 }
 impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = T::CAN_REMOVE_INDIVIDUAL_CHILDREN;
-
+    type PackedChildren = T::PackedChildren;
     #[inline(always)]
     fn value_mut_at(
         &mut self,
@@ -679,7 +681,7 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
         &mut self,
         cursor: &Self::Cursor,
         f: F,
-    ) -> Result<(Self::Branch, Self::Leaf, Option<Self::Leaf>), TryRemoveBranchError>
+    ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError>
     where
         F: FnOnce(Self::Branch) -> Self::Leaf,
     {
@@ -691,7 +693,7 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
         &mut self,
         cursor: &Self::Cursor,
         f: F,
-    ) -> Result<(), TryRemoveChildrenError>
+    ) -> Result<Self::PackedChildren, TryRemoveChildrenError>
     where
         F: FnOnce(Self::Branch) -> Self::Leaf,
     {

@@ -16,6 +16,7 @@ use crate::{
     TryRemoveLeafError,
     TryRemoveChildrenError,
 };
+use arrayvec::ArrayVec;
 
 mod node;
 use node::NodeData;
@@ -190,6 +191,7 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq {
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = true;
+    type PackedChildren = ArrayVec<[Self::Leaf; 2]>;
     #[inline(always)]
     fn value_mut_at(
         &mut self,
@@ -218,11 +220,18 @@ where
         &mut self,
         cursor: &Self::Cursor,
         f: F,
-    ) -> Result<(Self::Branch, Self::Leaf, Option<Self::Leaf>), TryRemoveBranchError>
+    ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError>
     where F: FnOnce(Self::Branch) -> Self::Leaf {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
-            .try_remove_branch_with(f)
+            .try_remove_branch_with(f).map(|x| {
+                let mut children = ArrayVec::new();
+                children.push(x.1);
+                if let Some(right_child) = x.2 {
+                    children.push(right_child);
+                }
+                (x.0, children)
+            })
     }
     #[inline(always)]
     #[allow(clippy::type_complexity)]
@@ -230,11 +239,18 @@ where
         &mut self,
         cursor: &Self::Cursor,
         f: F,
-    ) -> Result<(), TryRemoveChildrenError>
+    ) -> Result<Self::PackedChildren, TryRemoveChildrenError>
     where F: FnOnce(Self::Branch) -> Self::Leaf {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
-            .try_remove_children_with(f).map(|_| ())
+            .try_remove_children_with(f).map(|x| {
+                let mut children = ArrayVec::new();
+                children.push(x.0);
+                if let Some(right_child) = x.1 {
+                    children.push(right_child);
+                }
+                children
+            })
     }
 }
 impl<B, L, K, S> Default for BinaryTree<B, L, K, S>
