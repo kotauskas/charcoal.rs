@@ -2,7 +2,8 @@ use arrayvec::{ArrayVec, Array};
 use super::ListStorage;
 
 unsafe impl<A> ListStorage for ArrayVec<A>
-where A: Array {
+where A: Array,
+{
     type Element = A::Item;
 
     #[inline(always)]

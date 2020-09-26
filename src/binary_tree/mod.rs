@@ -2,15 +2,8 @@
 
 use core::fmt::Debug;
 use crate::{
-    storage::{
-        Storage, ListStorage,
-        DefaultStorage,
-        SparseStorage, SparseStorageSlot, SparseVec,
-    },
-    traversal::{
-        Traversable, TraversableMut,
-        VisitorDirection, CursorDirectionError,
-    },
+    storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot, SparseVec},
+    traversal::{Traversable, TraversableMut, VisitorDirection, CursorDirectionError},
     NodeValue,
     TryRemoveBranchError,
     TryRemoveLeafError,
@@ -31,14 +24,16 @@ pub use node_ref::{NodeRef, NodeRefMut};
 pub struct BinaryTree<B, L = B, K = usize, S = DefaultStorage<Node<B, L, K>>>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
-    K: Clone + Debug + Eq {
+    K: Clone + Debug + Eq,
+{
     storage: S,
     root: K,
 }
 impl<B, L, K, S> BinaryTree<B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
-    K: Clone + Debug + Eq {
+    K: Clone + Debug + Eq,
+{
     /// Creates an binary tree with the specified value for the root node.
     #[inline(always)]
     pub fn new(root: L) -> Self {
@@ -47,7 +42,7 @@ where
             // SAFETY: there isn't a root there yet
             Node::root(root)
         });
-        Self {storage, root}
+        Self { storage, root }
     }
     /// Creates an empty binary with the specified capacity for the storage.
     ///
@@ -56,13 +51,11 @@ where
     #[inline(always)]
     pub fn with_capacity(capacity: usize, root: L) -> Self {
         let mut storage = S::with_capacity(capacity);
-        let root = storage.add(
-            unsafe {
-                // SAFETY: as above
-                Node::root(root)
-            }
-        );
-        Self {storage, root}
+        let root = storage.add(unsafe {
+            // SAFETY: as above
+            Node::root(root)
+        });
+        Self { storage, root }
     }
     /// Returns a reference to the root node of the tree.
     #[inline(always)]
@@ -75,7 +68,9 @@ where
     }
 }
 impl<B, L, S> BinaryTree<B, L, usize, SparseStorage<Node<B, L, usize>, S>>
-where S: ListStorage<Element = SparseStorageSlot<Node<B, L, usize>>> {
+where
+    S: ListStorage<Element = SparseStorageSlot<Node<B, L, usize>>>,
+{
     /// Removes all holes from the sparse storage.
     ///
     /// Under the hood, this uses `defragment_and_fix`. It's not possible to defragment without fixing the indicies, as that might cause undefined behavior.
@@ -97,7 +92,8 @@ where S: ListStorage<Element = SparseStorageSlot<Node<B, L, usize>>> {
 impl<B, L, K, S> Traversable for BinaryTree<B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
-    K: Clone + Debug + Eq {
+    K: Clone + Debug + Eq,
+{
     type Branch = B;
     type Leaf = L;
     type Cursor = K;
@@ -108,23 +104,17 @@ where
         direction: VisitorDirection<Self::Cursor, V>,
     ) -> Result<Self::Cursor, CursorDirectionError<Self::Cursor>> {
         // Create the error in advance to avoid duplication
-        let error = CursorDirectionError {previous_state: cursor.clone()};
+        let error = CursorDirectionError {
+            previous_state: cursor.clone(),
+        };
         let node = NodeRef::new_raw(self, cursor)
             .expect("the node specified by the cursor does not exist");
         match direction {
-            VisitorDirection::Parent => {
-                node.parent()
-                    .ok_or(error)
-                    .map(NodeRef::into_raw_key)
-            },
+            VisitorDirection::Parent => node.parent().ok_or(error).map(NodeRef::into_raw_key),
             VisitorDirection::NextSibling => todo!(), // TODO
             VisitorDirection::Child(num) => match num {
-                0 => node.left_child()
-                    .ok_or(error)
-                    .map(NodeRef::into_raw_key),
-                1 => node.right_child()
-                    .ok_or(error)
-                    .map(NodeRef::into_raw_key),
+                0 => node.left_child().ok_or(error).map(NodeRef::into_raw_key),
+                1 => node.right_child().ok_or(error).map(NodeRef::into_raw_key),
                 _ => Err(error),
             },
             VisitorDirection::SetTo(new_cursor) => {
@@ -134,7 +124,7 @@ where
                     // Do not allow returning invalid cursors, as those will cause panicking
                     Err(error)
                 }
-            },
+            }
             VisitorDirection::Stop(..) => Err(error),
         }
     }
@@ -144,10 +134,7 @@ where
     }
     #[inline]
     #[track_caller]
-    fn value_of(
-        &self,
-        cursor: &Self::Cursor,
-    ) -> NodeValue<&'_ Self::Branch, &'_ Self::Leaf> {
+    fn value_of(&self, cursor: &Self::Cursor) -> NodeValue<&'_ Self::Branch, &'_ Self::Leaf> {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
         node_ref.value()
@@ -161,7 +148,9 @@ where
             2
         } else if node_ref.is_branch() {
             1
-        } else {0}
+        } else {
+            0
+        }
     }
     #[inline]
     #[track_caller]
@@ -176,12 +165,8 @@ where
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
         match child_num {
-            0 => {
-                node_ref.left_child().map(NodeRef::into_raw_key)
-            },
-            1 => {
-                node_ref.right_child().map(NodeRef::into_raw_key)
-            },
+            0 => node_ref.left_child().map(NodeRef::into_raw_key),
+            1 => node_ref.right_child().map(NodeRef::into_raw_key),
             _ => None,
         }
     }
@@ -189,7 +174,8 @@ where
 impl<B, L, K, S> TraversableMut for BinaryTree<B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
-    K: Clone + Debug + Eq {
+    K: Clone + Debug + Eq,
+{
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = true;
     type PackedChildren = ArrayVec<[Self::Leaf; 2]>;
     #[inline(always)]
@@ -197,34 +183,34 @@ where
         &mut self,
         cursor: &Self::Cursor,
     ) -> NodeValue<&'_ mut Self::Branch, &'_ mut Self::Leaf> {
-        self.storage.get_mut(cursor)
+        self.storage
+            .get_mut(cursor)
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
             .value
             .as_mut()
             .into_value()
     }
     #[inline(always)]
-    fn try_remove_leaf_with<F>(
+    fn try_remove_leaf_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
         f: F,
-    ) -> Result<Self::Leaf, TryRemoveLeafError>
-    where F: FnOnce(Self::Branch) -> Self::Leaf {
+    ) -> Result<Self::Leaf, TryRemoveLeafError> {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
             .try_remove_leaf_with(f)
     }
     #[inline(always)]
     #[allow(clippy::type_complexity)]
-    fn try_remove_branch_with<F>(
+    fn try_remove_branch_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
         f: F,
-    ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError>
-    where F: FnOnce(Self::Branch) -> Self::Leaf {
+    ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError> {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
-            .try_remove_branch_with(f).map(|x| {
+            .try_remove_branch_with(f)
+            .map(|x| {
                 let mut children = ArrayVec::new();
                 children.push(x.1);
                 if let Some(right_child) = x.2 {
@@ -235,15 +221,15 @@ where
     }
     #[inline(always)]
     #[allow(clippy::type_complexity)]
-    fn try_remove_children_with<F>(
+    fn try_remove_children_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
         f: F,
-    ) -> Result<Self::PackedChildren, TryRemoveChildrenError>
-    where F: FnOnce(Self::Branch) -> Self::Leaf {
+    ) -> Result<Self::PackedChildren, TryRemoveChildrenError> {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
-            .try_remove_children_with(f).map(|x| {
+            .try_remove_children_with(f)
+            .map(|x| {
                 let mut children = ArrayVec::new();
                 children.push(x.0);
                 if let Some(right_child) = x.1 {
@@ -257,7 +243,8 @@ impl<B, L, K, S> Default for BinaryTree<B, L, K, S>
 where
     L: Default,
     S: Storage<Element = Node<B, L, K>, Key = K>,
-    K: Clone + Debug + Eq {
+    K: Clone + Debug + Eq,
+{
     #[inline(always)]
     fn default() -> Self {
         Self::new(L::default())

@@ -1,14 +1,12 @@
 use core::fmt::Debug;
-use slotmap::{
-    SlotMap, HopSlotMap, DenseSlotMap,
-    Key, Slottable,
-};
+use slotmap::{SlotMap, HopSlotMap, DenseSlotMap, Key, Slottable};
 use super::Storage;
 
 unsafe impl<K, V> Storage for SlotMap<K, V>
 where
     K: Key + Debug + Eq,
-    V: Slottable {
+    V: Slottable,
+{
     type Key = K;
     type Element = V;
     // Those methods clone the keys which have been fed into them — this is perfectly fine, since
@@ -19,7 +17,8 @@ where
     }
     #[inline(always)]
     fn remove(&mut self, key: &Self::Key) -> Self::Element {
-        self.remove(key.clone()).expect("the value with this key has already been removed")
+        self.remove(key.clone())
+            .expect("the value with this key has already been removed")
     }
     #[inline(always)]
     fn len(&self) -> usize {
@@ -66,7 +65,8 @@ where
 unsafe impl<K, V> Storage for HopSlotMap<K, V>
 where
     K: Key + Debug + Eq,
-    V: Slottable {
+    V: Slottable,
+{
     type Key = K;
     type Element = V;
     // Those methods clone the keys which have been fed into them — this is perfectly fine, since
@@ -77,7 +77,8 @@ where
     }
     #[inline(always)]
     fn remove(&mut self, key: &Self::Key) -> Self::Element {
-        self.remove(key.clone()).expect("the value with this key has already been removed")
+        self.remove(key.clone())
+            .expect("the value with this key has already been removed")
     }
     #[inline(always)]
     fn len(&self) -> usize {
@@ -124,7 +125,8 @@ where
 unsafe impl<K, V> Storage for DenseSlotMap<K, V>
 where
     K: Key + Debug + Eq,
-    V: Slottable {
+    V: Slottable,
+{
     type Key = K;
     type Element = V;
     // Those methods clone the keys which have been fed into them — this is perfectly fine, since
@@ -135,7 +137,8 @@ where
     }
     #[inline(always)]
     fn remove(&mut self, key: &Self::Key) -> Self::Element {
-        self.remove(key.clone()).expect("the value with this key has already been removed")
+        self.remove(key.clone())
+            .expect("the value with this key has already been removed")
     }
     #[inline(always)]
     fn len(&self) -> usize {

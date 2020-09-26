@@ -2,7 +2,8 @@ use smallvec::{SmallVec, Array};
 use super::ListStorage;
 
 unsafe impl<A> ListStorage for SmallVec<A>
-where A: Array {
+where A: Array,
+{
     type Element = A::Item;
 
     #[inline(always)]

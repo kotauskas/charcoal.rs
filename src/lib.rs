@@ -232,10 +232,10 @@ node had a branch child (index {}), which cannot be removed without recursion",
                     "\
 node had a branch child, which cannot be removed without recursion"
                 }
-            },
+            }
             Self::CannotRemoveIndividualChildren => {
                 "removing individual children is not available for the tree"
-            },
+            }
         })
     }
 }

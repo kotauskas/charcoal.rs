@@ -1,8 +1,5 @@
 use core::hint;
-use alloc::{
-    vec::Vec,
-    collections::VecDeque,
-};
+use alloc::{vec::Vec, collections::VecDeque};
 use super::ListStorage;
 
 unsafe impl<T> ListStorage for Vec<T> {
@@ -93,14 +90,16 @@ unsafe impl<T> ListStorage for VecDeque<T> {
     #[inline(always)]
     unsafe fn get_unchecked(&self, index: usize) -> &Self::Element {
         // FIXME this relies on LLVM being smart enough to optimize out the bounds check
-        self.get(index).unwrap_or_else(|| hint::unreachable_unchecked())
+        self.get(index)
+            .unwrap_or_else(|| hint::unreachable_unchecked())
     }
     #[inline(always)]
     unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut Self::Element {
         // FIXME see above
-        self.get_mut(index).unwrap_or_else(|| hint::unreachable_unchecked())
+        self.get_mut(index)
+            .unwrap_or_else(|| hint::unreachable_unchecked())
     }
-    
+
     #[inline(always)]
     fn get(&self, index: usize) -> Option<&Self::Element> {
         self.get(index)

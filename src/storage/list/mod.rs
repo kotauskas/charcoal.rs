@@ -1,9 +1,9 @@
 #[cfg(feature = "alloc")]
 mod alloc_impl;
-#[cfg(feature = "smallvec")]
-mod smallvec_impl;
 #[cfg(feature = "arrayvec")]
 mod arrayvec_impl;
+#[cfg(feature = "smallvec")]
+mod smallvec_impl;
 
 mod sparse;
 pub use sparse::{
@@ -16,7 +16,7 @@ pub use sparse::{
 use core::num::{NonZeroUsize, NonZeroIsize};
 use super::Storage;
 
-const U_ONE: NonZeroUsize = unsafe {NonZeroUsize::new_unchecked(1)};
+const U_ONE: NonZeroUsize = unsafe { NonZeroUsize::new_unchecked(1) };
 
 /// Trait for list-like containers which can be the backing storage for trees.
 ///
@@ -65,7 +65,7 @@ pub unsafe trait ListStorage: Sized {
     /// # Safety
     /// If the specified index is out of bounds, a dangling reference will be created, causing *immediate undefined behavior*.
     unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut Self::Element;
-    
+
     /// Returns a reference to the specified element in the collection, or `None` if the index is out of bounds.
     #[inline]
     fn get(&self, index: usize) -> Option<&Self::Element> {
@@ -146,8 +146,10 @@ pub unsafe trait ListStorage: Sized {
     /// Note that this method has no effect on the allocated capacity of the collection.
     fn truncate(&mut self, len: usize) {
         let current_length = self.len();
-        if len > current_length || current_length == 0 {return}
-        for i in (current_length - 1) ..= len {
+        if len > current_length || current_length == 0 {
+            return;
+        }
+        for i in (current_length - 1)..=len {
             self.remove(i);
         }
     }
@@ -159,7 +161,8 @@ pub unsafe trait ListStorage: Sized {
     /// [`MoveFix`]: trait.MoveFix.html " "
     #[inline]
     fn insert_and_shiftfix(&mut self, index: usize, element: Self::Element)
-    where Self::Element: MoveFix {
+    where Self::Element: MoveFix,
+    {
         self.insert(index, element);
         /*let len = self.len();
         let fix_start_index = index + 1; // Don't fix the new element
@@ -186,7 +189,8 @@ pub unsafe trait ListStorage: Sized {
     /// [`MoveFix`]: trait.MoveFix.html " "
     #[inline]
     fn remove_and_shiftfix(&mut self, index: usize) -> Self::Element
-    where Self::Element: MoveFix {
+    where Self::Element: MoveFix,
+    {
         let element = self.remove(index);
         /*for i in index..self.len() {
             unsafe {
@@ -211,7 +215,8 @@ pub unsafe trait ListStorage: Sized {
 unsafe impl<T, E> Storage for T
 where
     T: ListStorage<Element = E>,
-    E: MoveFix {
+    E: MoveFix,
+{
     type Key = usize;
     type Element = E;
 
@@ -279,22 +284,16 @@ pub trait MoveFix: Sized {
     ///
     /// # Safety
     /// This method can ***only*** be called by `fix_left_shift` and `fix_right_shift`. All safety implications of those methods apply.
-    unsafe fn fix_shift<S>(
-        storage: &mut S,
-        shifted_from: usize,
-        shifted_by: NonZeroIsize,
-    ) where S: ListStorage<Element = Self>;
+    unsafe fn fix_shift<S>(storage: &mut S, shifted_from: usize, shifted_by: NonZeroIsize)
+    where S: ListStorage<Element = Self>;
     /// The hook to be called when an element in a collection gets moved from one location to another. `previous_index` represents its previous index before moving and is *not* guaranteed to be a valid index, `current_index` is its new index and is guaranteed to point towards a valid element.
     ///
     /// # Safety
     /// The implementor of this method may cause undefined behavior if the method was called erroneously and elements were not actually swapped.
     ///
     /// [`SparseStorage`]: struct.SparseStorage.html " "
-    unsafe fn fix_move<S>(
-        storage: &mut S,
-        previous_index: usize,
-        current_index: usize,
-    ) where S: ListStorage<Element = Self>;
+    unsafe fn fix_move<S>(storage: &mut S, previous_index: usize, current_index: usize)
+    where S: ListStorage<Element = Self>;
     /// The hook to be called when the items in the collection get shifted to the *left* due to a *removal*. `shifted_from` specifies the index from which the shift starts (first affected element), i.e. the index from which an item was removed.
     ///
     /// **The method gets called on the `shifted_from` element and all elements after it, in order; it's not called on elements before that point.** For tree elements, this means that if this method got called on them, they not only need to fix their child nodes' indicies, they also need to fix the indicies of their parents that point towards themselves.
@@ -302,17 +301,15 @@ pub trait MoveFix: Sized {
     /// # Safety
     /// The implementor of this method may cause undefined behavior if the method was called erroneously and elements were not actually shifted.
     #[inline(always)]
-    unsafe fn fix_left_shift<S>(
-        storage: &mut S,
-        shifted_from: usize,
-        shifted_by: NonZeroUsize,
-    ) where S: ListStorage<Element = Self> {
+    unsafe fn fix_left_shift<S>(storage: &mut S, shifted_from: usize, shifted_by: NonZeroUsize)
+    where S: ListStorage<Element = Self>,
+    {
         Self::fix_shift(
             storage,
             shifted_from,
-            NonZeroIsize::new(
-                (shifted_by.get() as isize).wrapping_neg()
-            ).expect("unexpected integer overflow"));
+            NonZeroIsize::new((shifted_by.get() as isize).wrapping_neg())
+                .expect("unexpected integer overflow"),
+        );
     }
     /// The hook to be called when the items in the collection get shifted to the *right* due to an *insertion*. `shifted_from` specifies the index from which the shift starts (first affected element), i.e. the index at which a new item was inserted.
     ///
@@ -321,16 +318,13 @@ pub trait MoveFix: Sized {
     /// # Safety
     /// The implementor of this method may cause undefined behavior if the method was called erroneously and elements were not actually shifted.
     #[inline(always)]
-    unsafe fn fix_right_shift<S>(
-        storage: &mut S,
-        shifted_from: usize,
-        shifted_by: NonZeroUsize,
-    ) where S: ListStorage<Element = Self> {
+    unsafe fn fix_right_shift<S>(storage: &mut S, shifted_from: usize, shifted_by: NonZeroUsize)
+    where S: ListStorage<Element = Self>,
+    {
         Self::fix_shift(
             storage,
             shifted_from,
-            NonZeroIsize::new(
-                shifted_by.get() as isize
-            ).expect("unexpected integer overflow"));
+            NonZeroIsize::new(shifted_by.get() as isize).expect("unexpected integer overflow"),
+        );
     }
 }

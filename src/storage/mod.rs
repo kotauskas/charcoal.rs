@@ -145,10 +145,7 @@ pub type DefaultStorage<T> = _DefaultStorage<T>;
 #[cfg(feature = "alloc")]
 type _DefaultStorage<T> = SparseVec<T>;
 
-#[cfg(all(
-    feature = "smallvec_storage",
-    not(feature = "alloc"),
-))]
+#[cfg(all(feature = "smallvec_storage", not(feature = "alloc"),))]
 type _DefaultStorage<T> = SparseStorage<smallvec::SmallVec<[T; 0]>, T>;
 
 #[cfg(all(
@@ -163,5 +160,7 @@ type _DefaultStorage<T> = arrayvec::ArrayVec<[T; 0]>;
     not(feature = "smallvec_storage"),
     not(feature = "arrayvec_storage"),
 ))]
-compile_error!("no default storage available, please enable one or more of the alloc, \
-smallvec_storage or arrayvec_storage feature flags");
+compile_error!(
+    "no default storage available, please enable one or more of the alloc, \
+smallvec_storage or arrayvec_storage feature flags"
+);

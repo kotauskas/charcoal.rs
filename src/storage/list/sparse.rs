@@ -1,9 +1,4 @@
-use core::{
-    ptr,
-    mem,
-    num::NonZeroUsize,
-    hint,
-};
+use core::{ptr, mem, num::NonZeroUsize, hint};
 use super::{ListStorage, MoveFix};
 
 /// A `Vec` wrapped in [`SparseStorage`].
@@ -24,13 +19,15 @@ pub type VecDeque<T> = SparseStorage<T, alloc::collections::VecDeque<Slot<T>>>;
 /// When `remove_and_shiftfix` is called, elements are not actually shifted, but the element is replaced with a hole. If the elements of the storage store indicies towards other elements of the storage, they don't get invalidated.
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct SparseStorage<E, S>
-where S: ListStorage<Element = Slot<E>> {
+where S: ListStorage<Element = Slot<E>>,
+{
     storage: S,
     /// Length, first element, last element
     hole_list: Option<(NonZeroUsize, usize, usize)>,
 }
 impl<E, S> SparseStorage<E, S>
-where S: ListStorage<Element = Slot<E>> {
+where S: ListStorage<Element = Slot<E>>,
+{
     /// Removes all holes from the sparse storage, *without fixing elements' indicies*. **This is an expensive operation and should only be called if `is_dense` is `false` to avoid needless overhead.**
     #[inline(always)]
     pub fn defragment(&mut self) {
@@ -39,7 +36,9 @@ where S: ListStorage<Element = Slot<E>> {
     /// Removes all holes from the sparse storage, fixing elements' indicies. **This is an expensive operation and should only be called if `is_dense` is `false` to avoid needless overhead.**
     #[inline(always)]
     pub fn defragment_and_fix(&mut self)
-    where E: MoveFix {
+    where
+        E: MoveFix,
+    {
         self.defragment_impl(|s, i, j| {
             unsafe {
                 // SAFETY: we just swapped those elements
@@ -48,7 +47,9 @@ where S: ListStorage<Element = Slot<E>> {
         });
     }
     fn defragment_impl<F>(&mut self, mut f: F)
-    where F: FnMut(&mut Self, usize, usize) {
+    where
+        F: FnMut(&mut Self, usize, usize),
+    {
         let hole_info = if let Some(val) = self.hole_list {
             val
         } else {
@@ -128,7 +129,8 @@ where S: ListStorage<Element = Slot<E>> {
                     // SAFETY: as above
                     self.storage.get_unchecked_mut(hole_info.2)
                 };
-                /*unsafe*/ {
+                /*unsafe*/
+                {
                     // SAFETY: hole info cannot point to non-holes
                     // Make the previous end point to the hole we just punched
                     old_end.set_hole_link(Some(index));
@@ -137,7 +139,8 @@ where S: ListStorage<Element = Slot<E>> {
                 hole_info.2 = index;
             } else {
                 self.hole_list = Some((
-                    /*unsafe*/ {
+                    /*unsafe*/
+                    {
                         // SAFETY: self explanatory
                         NonZeroUsize::new_unchecked(1)
                     }, // Only one hole
@@ -152,12 +155,17 @@ where S: ListStorage<Element = Slot<E>> {
 static HOLE_PANIC_MSG: &str = " \
 the element at the specified index was a hole in the sparse storage";
 unsafe impl<E, S> ListStorage for SparseStorage<E, S>
-where S: ListStorage<Element = Slot<E>> {
+where
+    S: ListStorage<Element = Slot<E>>,
+{
     type Element = E;
 
     #[inline(always)]
     fn with_capacity(capacity: usize) -> Self {
-        Self {storage: S::with_capacity(capacity), hole_list: None}
+        Self {
+            storage: S::with_capacity(capacity),
+            hole_list: None,
+        }
     }
     #[inline(always)]
     fn insert(&mut self, index: usize, element: Self::Element) {
@@ -169,9 +177,11 @@ where S: ListStorage<Element = Slot<E>> {
         if self.is_dense() {
             self.storage.remove(index).unwrap()
         } else {
-            unimplemented!("\
+            unimplemented!(
+                "\
 cannot perform raw removal from sparse storage without defragmenting, use remove_and_shiftfix or \
-defragment before doing this")
+defragment before doing this"
+            )
         }
     }
     #[inline(always)]
@@ -180,11 +190,17 @@ defragment before doing this")
     }
     #[inline]
     unsafe fn get_unchecked(&self, index: usize) -> &Self::Element {
-        self.storage.get_unchecked(index).element_checked().expect(HOLE_PANIC_MSG)
+        self.storage
+            .get_unchecked(index)
+            .element_checked()
+            .expect(HOLE_PANIC_MSG)
     }
     #[inline]
     unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut Self::Element {
-        self.storage.get_unchecked_mut(index).element_checked_mut().expect(HOLE_PANIC_MSG)
+        self.storage
+            .get_unchecked_mut(index)
+            .element_checked_mut()
+            .expect(HOLE_PANIC_MSG)
     }
 
     #[inline]
@@ -213,7 +229,10 @@ defragment before doing this")
     }
     #[inline(always)]
     fn new() -> Self {
-        Self {storage: S::new(), hole_list: None}
+        Self {
+            storage: S::new(),
+            hole_list: None,
+        }
     }
     #[inline(always)]
     fn push(&mut self, element: Self::Element) {
@@ -224,9 +243,11 @@ defragment before doing this")
         if self.is_dense() {
             self.storage.pop().map(Slot::unwrap)
         } else {
-            unimplemented!("\
+            unimplemented!(
+                "\
 cannot perform raw removal from sparse storage without defragmenting, use remove_and_shiftfix or \
-defragment before doing this")
+defragment before doing this"
+            )
         }
     }
     #[inline(always)]
@@ -246,7 +267,8 @@ defragment before doing this")
         self.storage.truncate(len)
     }
     fn insert_and_shiftfix(&mut self, index: usize, element: Self::Element)
-    where Self::Element: MoveFix {
+    where Self::Element: MoveFix,
+    {
         // We are not using holes here since the hole list isn't doubly linked and we might end up
         // pointing to an element
         self.insert(index, element);
@@ -258,12 +280,14 @@ defragment before doing this")
     #[inline]
     #[track_caller]
     fn remove_and_shiftfix(&mut self, index: usize) -> Self::Element
-    where Self::Element: MoveFix {
+    where Self::Element: MoveFix,
+    {
         assert!(self.len() > index, "index out of bounds");
         unsafe {
             // SAFETY: we just did bounds checking
             self.punch_hole(index)
-        }.expect(HOLE_PANIC_MSG)
+        }
+        .expect(HOLE_PANIC_MSG)
     }
     #[inline]
     #[allow(clippy::option_if_let_else)] // I hate map_or_else
@@ -351,11 +375,11 @@ defragment before doing this")
 /// **Total alignment:** the same as a *pointer* (largest primitive alignment), but may be more if `T` specifies a bigger exotic alignment explicitly
 #[repr(transparent)]
 #[derive(Debug, Hash)]
-pub struct Slot<T> (SlotInner<T>);
+pub struct Slot<T>(SlotInner<T>);
 impl<T> Slot<T> {
     #[inline(always)]
     const fn new_element(val: T) -> Self {
-        Self (SlotInner::new_element(val))
+        Self(SlotInner::new_element(val))
     }
     // Uncomment if ever needed
     /*#[inline(always)]
@@ -380,7 +404,9 @@ impl<T> Slot<T> {
                 // SAFETY: we just checked for that
                 Some(self.element())
             }
-        } else {None}
+        } else {
+            None
+        }
     }
     #[inline(always)]
     unsafe fn element_mut(&mut self) -> &mut T {
@@ -392,7 +418,9 @@ impl<T> Slot<T> {
                 // SAFETY: we just checked for that
                 Some(self.element_mut())
             }
-        } else {None}
+        } else {
+            None
+        }
     }
     #[inline(always)]
     unsafe fn hole_link(&self) -> Option<usize> {
@@ -445,9 +473,7 @@ impl<T> SlotUnionBased<T> {
     const fn new_element(val: T) -> Self {
         Self {
             discrim: Self::ELEMENT_DISCRIM_BIT,
-            data: SlotInner {
-                element: val,
-            },
+            data: SlotInner { element: val },
         }
     }
     // Uncomment if ever needed
@@ -457,7 +483,7 @@ impl<T> SlotUnionBased<T> {
             discrim: Self::HOLE_DISCRIM_BIT | ((val.is_some() as u8) << 1),
             data: SlotInner {
                 hole_link: val.unwrap_or_default(), // Uninit integers are unsound
-            }
+            },
         }
     }
     #[inline(always)]
@@ -505,7 +531,7 @@ impl<T> SlotUnionBased<T> {
                     ptr::write(self, Self::new_hole(next));
                 }
                 Some(val_owned)
-            },
+            }
             Self::HOLE_DISCRIM_BIT => None,
             _ => unsafe {
                 // SAFETY: we're masking out one bit and matching it, other values
@@ -576,7 +602,7 @@ impl<T> SlotEnumBased<T> {
         match self {
             Self::Hole(x) => {
                 *x = val;
-            },
+            }
             Self::Element(..) => hint::unreachable_unchecked(),
         }
     }
@@ -594,7 +620,7 @@ impl<T> SlotEnumBased<T> {
                     ptr::write(self, Self::Hole(next));
                 }
                 Some(val_owned)
-            },
+            }
             Self::Hole(..) => None,
         }
     }
