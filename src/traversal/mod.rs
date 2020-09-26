@@ -387,7 +387,6 @@ where
     type Item = Option<V::Output>;
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        #[cold] // FusedIterator moment
         if self.finished {
             return None;
         }
@@ -497,7 +496,6 @@ where
     type Item = Option<V::Output>;
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        #[cold] // FusedIterator moment
         if self.finished {
             return None;
         }
