@@ -40,7 +40,7 @@ pub trait Visitor {
     /// Visit the provided node, returning further directions for traversal.
     ///
     /// # Panics
-    /// Required to panic if called after a `Stop` value has already been produced.
+    /// Required to panic if called after a `Stop` value has already been produced. May also panic for other reasons, as appropriate and specified by the documentation on the trait implementation.
     fn visit<C>(
         &mut self,
         traversable: impl Borrow<Self::Target>,
@@ -66,7 +66,7 @@ pub trait VisitorMut {
     /// Visit the provided node with a mutable reference, returning further directions for traversal and giving back ownership of the mutable borrow to the traversable.
     ///
     /// # Panics
-    /// Required to panic if called after a `Stop` value has already been produced.
+    /// Required to panic if called after a `Stop` value has already been produced. May also panic for other reasons, as appropriate and specified by the documentation on the trait implementation.
     fn visit_mut<C, M>(
         &mut self,
         traversable: M,
@@ -109,6 +109,9 @@ pub trait Traversable: Sized {
     type Cursor: Clone + Debug + Eq;
 
     /// Advances the specified cursor according to the specified directions from the visitor.
+    ///
+    /// # Panics
+    /// Required to panic if the current cursor value is invalid, i.e. it's impossible to determine the previously valid cursor value (as opposed to merely invalid directions but valid cursor, which can be recovered from).
     fn advance_cursor<V>(
         &self,
         cursor: Self::Cursor,
@@ -117,17 +120,32 @@ pub trait Traversable: Sized {
     /// Returns the cursor pointing to the root node.
     fn cursor_to_root(&self) -> Self::Cursor;
     /// Returns a by-reference `NodeValue` of the node at the specified cursor.
+    ///
+    /// # Panics
+    /// Required to panic if the cursor value is invalid.
     fn value_of(&self, cursor: &Self::Cursor) -> NodeValue<&'_ Self::Branch, &'_ Self::Leaf>;
     /// Returns a cursor to the parent of the node at the specified cursor, or `None` if that node is the root node.
+    ///
+    /// # Panics
+    /// Required to panic if the cursor value is invalid. If the cursor is valid but has no parent, the method *must* return `None` instead of panicking.
     fn parent_of(&self, cursor: &Self::Cursor) -> Option<Self::Cursor>;
     /// Returns the number of children of the node at the specified cursor.
+    ///
+    /// # Panics
+    /// Required to panic if the cursor value is invalid.
     fn num_children_of(&self, cursor: &Self::Cursor) -> usize;
     /// Returns a cursor to the *`n`*th child of the node at the specified cursor, or `None` if the child at that index does not exist.
+    ///
+    /// # Panics
+    /// Required to panic if cursor value is invalid.
     fn nth_child_of(&self, cursor: &Self::Cursor, child_num: usize) -> Option<Self::Cursor>;
 
     /// Performs one step of the visitor from the specified cursor, returning either the cursor for the next step or the final result of the visitor if it ended.
     ///
     /// It's a logic error to interleave calls to step through a `Visitor` with equivalent calls for one or more `VisitorMut` on the same traversable. This cannot invoke undefined behavior, but may produce unexpected results, such as infinite loops or panicking.
+    ///
+    /// # Panics
+    /// The visitor itself may panic, but otherwise the method should not add any panics on its own.
     fn step<V>(
         &self,
         mut visitor: V,
@@ -186,7 +204,10 @@ pub trait TraversableMut: Traversable {
     /// The leaf children of a branch node, packed into an iterable.
     type PackedChildren: IntoIterator<Item = Self::Leaf> + FromIterator<Self::Leaf>;
     /// Returns a *mutable* by-reference `NodeValue` of the node at the specified cursor, allowing modifications.
-    fn value_mut_at(
+    ///
+    /// # Panics
+    /// Required to panic if cursor value is invalid.
+    fn value_mut_of(
         &mut self,
         cursor: &Self::Cursor,
     ) -> NodeValue<&'_ mut Self::Branch, &'_ mut Self::Leaf>;
@@ -197,6 +218,9 @@ pub trait TraversableMut: Traversable {
     /// - The node was a branch node, which would require recursion to remove, and this function explicitly does not implement recursive removal.
     /// - The node was the root node, which can never be removed.
     /// - The tree does not allow removing single leaf nodes and only allows removing all children of a branch node.
+    ///
+    /// # Panics
+    /// Required to panic if cursor value is invalid.
     fn try_remove_leaf_with<F>(
         &mut self,
         cursor: &Self::Cursor,
@@ -211,6 +235,9 @@ pub trait TraversableMut: Traversable {
     /// - The node was a leaf node. The `try_remove_leaf`/`try_remove_leaf_with` methods exist for that.
     /// - The node was the root node, which can never be removed.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
+    ///
+    /// # Panics
+    /// Required to panic if cursor value is invalid.
     #[allow(clippy::type_complexity)] // I disagree
     fn try_remove_branch_with<F>(
         &mut self,
@@ -225,6 +252,9 @@ pub trait TraversableMut: Traversable {
     /// Will fail in the following scenarios:
     /// - The node was a leaf node, which cannot have children by definition.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
+    ///
+    /// # Panics
+    /// Required to panic if cursor value is invalid.
     #[allow(clippy::type_complexity)] // same here
     fn try_remove_children_with<F>(
         &mut self,
@@ -237,6 +267,9 @@ pub trait TraversableMut: Traversable {
     /// Performs one step of the mutating visitor from the specified cursor, returning either the cursor for the next step or the final result of the visitor if it ended.
     ///
     /// It's a logic error to interleave calls to step through a `VisitorMut` with equivalent calls for another `VisitorMut` or a `Visitor` on the same traversable. This cannot invoke undefined behavior, but may produce unexpected results, such as infinite loops or panicking.
+    ///
+    /// # Panics
+    /// The visitor itself may panic, but otherwise the method should not add any panics on its own.
     fn step_mut<V>(
         &mut self,
         mut visitor: V,
@@ -656,11 +689,11 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = T::CAN_REMOVE_INDIVIDUAL_CHILDREN;
     type PackedChildren = T::PackedChildren;
     #[inline(always)]
-    fn value_mut_at(
+    fn value_mut_of(
         &mut self,
         cursor: &Self::Cursor,
     ) -> NodeValue<&'_ mut Self::Branch, &'_ mut Self::Leaf> {
-        (*self).value_mut_at(cursor)
+        (*self).value_mut_of(cursor)
     }
     #[inline(always)]
     fn try_remove_leaf_with<F>(

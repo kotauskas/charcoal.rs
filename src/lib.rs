@@ -4,9 +4,10 @@
 //!
 //! # Not yet release ready
 //! Currently, the crate is in an unfinished state and is not ready to be uploaded to Crates.io. Here's an overview of everything that needs to be finished in order to consider the crate production-ready:
+//! - More trees!
 //! - Built-in algorithms
 //! - More comprehensive documentation, examples
-//! - Tests, examples, possibly also benchmarks with `bencher`
+//! - Tests, examples, possibly also benchmarks with `criterion.rs`
 //!
 //! ------------------------
 //!

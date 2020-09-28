@@ -300,6 +300,9 @@ pub trait MoveFix: Sized {
     ///
     /// # Safety
     /// The implementor of this method may cause undefined behavior if the method was called erroneously and elements were not actually shifted.
+    ///
+    /// # Panics
+    /// Required to panic on integer overflow when converting the `shifted_by` into a `NonZeroIsize`.
     #[inline(always)]
     unsafe fn fix_left_shift<S>(storage: &mut S, shifted_from: usize, shifted_by: NonZeroUsize)
     where S: ListStorage<Element = Self>,

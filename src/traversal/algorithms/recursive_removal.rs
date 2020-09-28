@@ -47,6 +47,10 @@ where
 ///
 /// See also the [`recursively_remove_with`] and [`recursively_remove`] functions, which create and drive the visitor to completion on a traversable.
 ///
+/// # Panics
+/// - If the traversable which is being visited incorrectly implements `TraversableMut`, especially `CAN_REMOVE_INDIVIDUAL_CHILDREN` and `parent_of`.
+/// - If removing the root node is attempted. If all nodes in a tree need to be removed recursively, it can just be dropped instead.
+///
 /// # Algorithm details
 /// There are two variants of the algorithm, one which runs only if [`CAN_REMOVE_INDIVIDUAL_CHILDREN`] is true and another which runs if it's false.
 ///
@@ -99,6 +103,7 @@ impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> RecursiveRemovalWith<T, 
 /// [`recursively_remove`]: function.recursively_remove.html " "
 pub type FnRecursiveRemoval<T> =
     RecursiveRemovalWith<T, fn(<T as Traversable>::Branch) -> <T as Traversable>::Leaf>;
+/// See the struct-level documentation for a list of all panicking conditions.
 impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> VisitorMut for RecursiveRemovalWith<T, F> {
     type Target = T;
     /// If `try_remove_children_with` was used to remove the target node, then `None` is returned. This will be changed in a future version.
@@ -109,7 +114,6 @@ impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> VisitorMut for Recursive
         clippy::shadow_unrelated, // It's not "unrelated" smh
         clippy::too_many_lines, // I know how to count, thank you very much
     )]
-    // Too many lines? How about:
     #[inline]
     fn visit_mut<C, M>(
         &mut self,

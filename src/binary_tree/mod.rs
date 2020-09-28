@@ -187,7 +187,7 @@ where
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = true;
     type PackedChildren = ArrayVec<[Self::Leaf; 2]>;
     #[inline(always)]
-    fn value_mut_at(
+    fn value_mut_of(
         &mut self,
         cursor: &Self::Cursor,
     ) -> NodeValue<&'_ mut Self::Branch, &'_ mut Self::Leaf> {
