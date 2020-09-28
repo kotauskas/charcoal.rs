@@ -1,4 +1,10 @@
-use core::{ptr, mem, num::NonZeroUsize, hint};
+use core::{
+    fmt::{self, Formatter, Debug},
+    ptr,
+    mem,
+    num::NonZeroUsize,
+    hint,
+};
 use super::{ListStorage, MoveFix};
 
 /// A `Vec` wrapped in [`SparseStorage`].
@@ -17,7 +23,7 @@ pub type VecDeque<T> = SparseStorage<T, alloc::collections::VecDeque<Slot<T>>>;
 /// Sparse storage with element type `E` wraps a normal storage which stores `Slot<E>`, which is a tagged union storing either an element or a "hole". Those holes count as regular elements, but trying to get their value produces a panic, since the storage provides `E` as its element type, rather than `Slot<E>`. This behavior does not depend on whether checked or unchecked `get`/`get_mut` methods are used - all of those are guaranteed to panic upon fetching a hole.
 ///
 /// When `remove_and_shiftfix` is called, elements are not actually shifted, but the element is replaced with a hole. If the elements of the storage store indicies towards other elements of the storage, they don't get invalidated.
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct SparseStorage<E, S>
 where S: ListStorage<Element = Slot<E>>,
 {
@@ -188,6 +194,7 @@ defragment before doing this"
     fn len(&self) -> usize {
         self.storage.len()
     }
+    // Will panic if a hole is encountered at the index.
     #[inline]
     unsafe fn get_unchecked(&self, index: usize) -> &Self::Element {
         self.storage
@@ -195,6 +202,7 @@ defragment before doing this"
             .element_checked()
             .expect(HOLE_PANIC_MSG)
     }
+    // Will panic if a hole is encountered at the index.
     #[inline]
     unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut Self::Element {
         self.storage
@@ -203,6 +211,7 @@ defragment before doing this"
             .expect(HOLE_PANIC_MSG)
     }
 
+    // Will panic if a hole is encountered at the index.
     #[inline]
     #[track_caller]
     fn get(&self, index: usize) -> Option<&Self::Element> {
@@ -215,6 +224,7 @@ defragment before doing this"
             None => None,
         }
     }
+    // Will panic if a hole is encountered at the index.
     #[inline]
     #[track_caller]
     fn get_mut(&mut self, index: usize) -> Option<&mut Self::Element> {
@@ -238,6 +248,7 @@ defragment before doing this"
     fn push(&mut self, element: Self::Element) {
         self.storage.push(Slot::new_element(element))
     }
+    // Will panic if a hole is at the end of the storage.
     #[inline]
     fn pop(&mut self) -> Option<Self::Element> {
         if self.is_dense() {
@@ -374,7 +385,7 @@ defragment before doing this"
 /// **Total size:** *3 pointers* (*24 bytes* on 64-bit systems, *12 bytes* on 32-bit systems) or more depending on the size of `T` *if it's over the size of* ***2 pointers***
 /// **Total alignment:** the same as a *pointer* (largest primitive alignment), but may be more if `T` specifies a bigger exotic alignment explicitly
 #[repr(transparent)]
-#[derive(Debug, Hash)]
+#[derive(Debug)]
 pub struct Slot<T>(SlotInner<T>);
 impl<T> Slot<T> {
     #[inline(always)]
@@ -473,16 +484,21 @@ impl<T> SlotUnionBased<T> {
     const fn new_element(val: T) -> Self {
         Self {
             discrim: Self::ELEMENT_DISCRIM_BIT,
-            data: SlotInner { element: val },
+            data: SlotUnion { element: mem::ManuallyDrop::new(val) },
         }
     }
     // Uncomment if ever needed
     #[inline(always)]
     const fn new_hole(val: Option<usize>) -> Self {
         Self {
-            discrim: Self::HOLE_DISCRIM_BIT | ((val.is_some() as u8) << 1),
-            data: SlotInner {
-                hole_link: val.unwrap_or_default(), // Uninit integers are unsound
+            discrim: Self::HOLE_DISCRIM_BIT | ((matches!(val, Some(..)) as u8) << 1),
+            data: SlotUnion {
+                // Uninit integers are unsound. Not using unwrap_or_default
+                // here because it's not stable as a const fn
+                hole_link: match val {
+                    Some(val) => val,
+                    None => 0,
+                },
             },
         }
     }
@@ -495,7 +511,7 @@ impl<T> SlotUnionBased<T> {
         self.discrim & Self::UNION_DISCRIM_MASK == Self::HOLE_DISCRIM_BIT
     }
     #[inline(always)]
-    const unsafe fn element(&self) -> &T {
+    unsafe fn element(&self) -> &T {
         &self.data.element
     }
     #[inline(always)]
@@ -503,7 +519,7 @@ impl<T> SlotUnionBased<T> {
         &mut self.data.element
     }
     #[inline]
-    const unsafe fn hole_link(&self) -> Option<usize> {
+    unsafe fn hole_link(&self) -> Option<usize> {
         if self.discrim & Self::LINK_DISCRIM_MASK != 0 {
             Some(self.data.hole_link)
         } else {
@@ -524,13 +540,13 @@ impl<T> SlotUnionBased<T> {
                     // SAFETY: the pointer is obtained from a reference and therefore is
                     // guranteed to be valid; the value will not be duplicated because
                     // we're overwriting it right after this operation
-                    ptr::read(&mut self.data.element)
+                    ptr::read(&self.data.element)
                 };
                 unsafe {
                     // SAFETY: as above
                     ptr::write(self, Self::new_hole(next));
                 }
-                Some(val_owned)
+                Some(mem::ManuallyDrop::into_inner(val_owned))
             }
             Self::HOLE_DISCRIM_BIT => None,
             _ => unsafe {
@@ -542,9 +558,38 @@ impl<T> SlotUnionBased<T> {
     }
 }
 #[cfg(feature = "union_optimizations")]
+impl<T: Debug> Debug for SlotUnionBased<T> {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.is_element() {
+            let element_ref = unsafe {
+                // SAFETY: we just did a discriminant check
+                self.element()
+            };
+            f.debug_tuple("Element")
+                .field(element_ref)
+                .finish()
+        } else {
+            let hole_link = unsafe {
+                // SAFETY: as above
+                self.hole_link()
+            };
+            f.debug_tuple("Hole")
+                .field(&hole_link)
+                .finish()
+        }
+    }
+}
+#[cfg(feature = "union_optimizations")]
+impl<T> Drop for SlotUnionBased<T> {
+    fn drop(&mut self) {
+        // TODO
+    }
+}
+#[cfg(feature = "union_optimizations")]
 union SlotUnion<T> {
     hole_link: usize,
-    element: T,
+    element: mem::ManuallyDrop<T>,
 }
 
 #[cfg(not(feature = "union_optimizations"))]
