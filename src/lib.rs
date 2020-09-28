@@ -92,7 +92,8 @@
     clippy::range_minus_one,
     clippy::redundant_closure_for_method_calls,
     clippy::same_functions_in_if_condition,
-    clippy::shadow_unrelated,
+    // also sick of this one, gives too much false positives inherent to its design
+    // clippy::shadow_unrelated,
     clippy::similar_names,
     clippy::single_match_else,
     clippy::string_add_assign,

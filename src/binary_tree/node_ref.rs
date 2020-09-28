@@ -609,20 +609,16 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     pub fn recursively_remove_with<F: FnMut(B) -> L>(self, f: F) -> NodeValue<B, L> {
         algorithms::recursively_remove_with(self.tree, self.key, f)
     }
-    /// Sets the children of the node to specified zero, one or two children. If there were children before and the method would otherwise drop them, they are instead bundled and returned.
+    /// Sets the left child's value, either adding a new value if the node was a leaf node, replacing the old one if it was a partial or full branch, or removing the value if `None` is supplied. In the `None` case, if there is also a right child (full branch), the right child is shifted to become the left child.
     ///
-    /// If the node was a leaf before and adding one or more children is requested, the old value is passed to first closure and replaced with a new branch payload; if it was a branch before and removing all children is requested, the old value is passed to the second closure and replaced with a new leaf payload.
-    #[allow(clippy::shadow_unrelated)] // bullshit lint
-    pub fn set_children_with<LtB: FnMut(L) -> B, BtL: FnMut(B) -> L>(
-        &'_ mut self,
-        new_children: ArrayVec<[L; 2]>,
+    /// If the node was a leaf before and adding a child requested, the old value is passed to first closure and replaced with a new branch payload; if it was a branch before and removing its only child is requested, the old value is passed to the second closure and replaced with a new leaf payload. *Those closures are also used during recursive removal, if the left child gets overwritten.*
+    #[allow(clippy::option_if_let_else)] // Disagrees with the drop checker
+    pub fn set_left_child_with<LtB: FnMut(L) -> B, BtL: FnMut(B) -> L>(
+        &mut self,
+        new_left_child: Option<L>,
         mut leaf_to_branch: LtB,
         mut branch_to_leaf: BtL,
-    ) -> ArrayVec<[NodeValue<B, L>; 2]> {
-        let (new_left_child, new_right_child) = {
-            let mut new_children = new_children.into_iter();
-            (new_children.next(), new_children.next())
-        };
+    ) -> Option<NodeValue<B, L>> {
         let new_left_child_key = new_left_child.map(|new_left_child| {
             self.tree.storage.add(unsafe {
                 // SAFETY: the following invariants are upheld:
@@ -631,21 +627,13 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 Node::leaf(new_left_child, Some(self.key.clone()))
             })
         });
-        let new_right_child_key = new_right_child.map(|new_right_child| {
-            self.tree.storage.add(unsafe {
-                // SAFETY: as above
-                Node::leaf(new_right_child, Some(self.key.clone()))
-            })
-        });
-        let new_children_keys =
-            new_left_child_key.map(|new_left_child_key| (new_left_child_key, new_right_child_key));
         let node = self.node_mut();
         let parent = node.parent.clone();
         match &mut node.value {
             NodeData::Branch {
                 payload,
-                left_child,
-                right_child,
+                left_child: old_left_child_key,
+                right_child: old_right_child_key,
             } => {
                 let old_val_owned = unsafe {
                     // SAFETY: we're overwriting this afterwards
@@ -653,31 +641,29 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 };
                 // why do a whole ptr::read when you can do something that results
                 // exactly the same in codegen?
-                let left_child = left_child.clone();
-                let right_child = right_child.clone();
-                let left_child_owned =
-                    algorithms::recursively_remove_with(self.tree, left_child, &mut branch_to_leaf);
-                let right_child_owned = right_child.map(|right_child| {
-                    algorithms::recursively_remove_with(self.tree, right_child, &mut branch_to_leaf)
-                });
+                let old_left_child_key = old_left_child_key.clone();
+                let old_right_child_key = old_right_child_key.clone();
+                let left_child_owned = algorithms::recursively_remove_with(
+                    self.tree,
+                    old_left_child_key,
+                    &mut branch_to_leaf,
+                );
                 let node = self.node_mut();
                 unsafe {
                     // SAFETY: pointer comes from a reference and therefore is valid
                     ptr::write::<Node<B, L, K>>(
                         node,
-                        match new_children_keys {
-                            Some((l, Some(r))) => Node::full_branch(old_val_owned, [l, r], parent),
-                            Some((c, None)) => Node::partial_branch(old_val_owned, c, parent),
-                            None => Node::leaf(branch_to_leaf(old_val_owned), parent),
+                        match (new_left_child_key, old_right_child_key) {
+                            (Some(l), Some(r))
+                            => Node::full_branch(old_val_owned, [l, r], parent),
+                            (Some(c), None) | (None, Some(c))
+                            => Node::partial_branch(old_val_owned, c, parent),
+                            (None, None)
+                            => Node::leaf(branch_to_leaf(old_val_owned), parent),
                         },
                     );
                 }
-                let mut old_children = ArrayVec::new();
-                old_children.push(left_child_owned);
-                if let Some(right_child_owned) = right_child_owned {
-                    old_children.push(right_child_owned);
-                }
-                old_children
+                Some(left_child_owned)
             }
             NodeData::Leaf(old_val) => {
                 let old_val_owned = unsafe {
@@ -688,21 +674,123 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     // SAFETY: pointer comes from a reference and therefore is valid
                     ptr::write::<Node<B, L, K>>(
                         node,
-                        match new_children_keys {
-                            Some((l, Some(r))) => {
-                                Node::full_branch(leaf_to_branch(old_val_owned), [l, r], parent)
-                            }
-                            Some((c, None)) => {
-                                Node::partial_branch(leaf_to_branch(old_val_owned), c, parent)
-                            }
-                            None => Node::leaf(old_val_owned, parent),
+                        if let Some(l) = new_left_child_key {
+                            Node::partial_branch(leaf_to_branch(old_val_owned), l, parent)
+                        } else {
+                            Node::leaf(old_val_owned, parent)
                         },
                     );
                 }
-                // There were no children, so we're returning an empty bundle
-                ArrayVec::new()
+                // There were no children, so we're returning a None
+                None
             }
         }
+    }
+    /// Sets the right child's value, either adding a new value if the node was a leaf node, replacing the old one if it was a partial or full branch, or removing the value if `None` is supplied. If the node was a leaf before, the child instead becomes the left child.
+    ///
+    /// If the node was a leaf before and adding a child requested, the old value is passed to first closure and replaced with a new branch payload; if it was a branch before and removing its only child is requested, the old value is passed to the second closure and replaced with a new leaf payload. *Those closures are also used during recursive removal, if the right child gets overwritten.*
+    #[allow(clippy::option_if_let_else)] // as in set_left_child_with
+    pub fn set_right_child_with<LtB: FnMut(L) -> B, BtL: FnMut(B) -> L>(
+        &mut self,
+        new_right_child: Option<L>,
+        mut leaf_to_branch: LtB,
+        mut branch_to_leaf: BtL,
+    ) -> Option<NodeValue<B, L>> {
+        let new_right_child_key = new_right_child.map(|new_right_child| {
+            self.tree.storage.add(unsafe {
+                // SAFETY: the following invariants are upheld:
+                // - we're evidently not creating a second root node
+                // - parent is valid because the key of self is assumed to be valid
+                Node::leaf(new_right_child, Some(self.key.clone()))
+            })
+        });
+        let node = self.node_mut();
+        let parent = node.parent.clone();
+        match &mut node.value {
+            NodeData::Branch {
+                payload,
+                left_child: old_left_child_key,
+                right_child: old_right_child_key,
+            } => {
+                let old_val_owned = unsafe {
+                    // SAFETY: we're overwriting this afterwards
+                    ptr::read(payload)
+                };
+                // why do a whole ptr::read when you can do something that results
+                // exactly the same in codegen?
+                let old_left_child_key = old_left_child_key.clone();
+                let old_right_child_key = old_right_child_key.clone();
+                let right_child_owned = old_right_child_key.map(|old_right_child_key| {
+                    algorithms::recursively_remove_with(
+                        self.tree,
+                        old_right_child_key,
+                        &mut branch_to_leaf,
+                    )
+                });
+                let node = self.node_mut();
+                unsafe {
+                    // SAFETY: pointer comes from a reference and therefore is valid
+                    ptr::write::<Node<B, L, K>>(
+                        node,
+                        match (old_left_child_key, new_right_child_key) {
+                            (l, Some(r))
+                            => Node::full_branch(old_val_owned, [l, r], parent),
+                            (l, None)
+                            => Node::partial_branch(old_val_owned, l, parent),
+                        },
+                    );
+                }
+                right_child_owned
+            }
+            NodeData::Leaf(old_val) => {
+                let old_val_owned = unsafe {
+                    // SAFETY: we're overwriting this right below
+                    ptr::read(old_val)
+                };
+                unsafe {
+                    // SAFETY: pointer comes from a reference and therefore is valid
+                    ptr::write::<Node<B, L, K>>(
+                        node,
+                        if let Some(r) = new_right_child_key {
+                            Node::partial_branch(leaf_to_branch(old_val_owned), r, parent)
+                        } else {
+                            Node::leaf(old_val_owned, parent)
+                        },
+                    );
+                }
+                // There were no children, so we're returning a None
+                None
+            }
+        }
+    }
+    /// Sets the children of the node to specified zero, one or two children. If there were children before and the method would otherwise drop them, they are instead bundled and returned.
+    ///
+    /// If the node was a leaf before and adding one or more children is requested, the old value is passed to first closure and replaced with a new branch payload; if it was a branch before and removing all children is requested, the old value is passed to the second closure and replaced with a new leaf payload.
+    pub fn set_children_with<LtB: FnMut(L) -> B, BtL: FnMut(B) -> L>(
+        &mut self,
+        new_children: ArrayVec<[L; 2]>,
+        mut leaf_to_branch: LtB,
+        mut branch_to_leaf: BtL,
+    ) -> ArrayVec<[NodeValue<B, L>; 2]> {
+        let (new_left_child, new_right_child) = {
+            let mut new_children = new_children.into_iter();
+            (new_children.next(), new_children.next())
+        };
+        let old_right_child = self.set_right_child_with(
+            new_right_child,
+            &mut leaf_to_branch,
+            &mut branch_to_leaf,
+        );
+        let old_left_child = self.set_left_child_with(
+            new_left_child,
+            &mut leaf_to_branch,
+            &mut branch_to_leaf,
+        );
+        let mut result = ArrayVec::new();
+        let mut conditionally_add = |x| result.push(x);
+        old_left_child.map(&mut conditionally_add);
+        old_right_child.map(&mut conditionally_add);
+        result
     }
 
     #[inline(always)]
