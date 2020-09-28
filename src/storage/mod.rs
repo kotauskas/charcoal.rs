@@ -31,6 +31,9 @@ use core::fmt::Debug;
 /// - If an element is added at a key, it must be retrieveable in the exact same state as it was inserted until it is removed or modified using a method which explicitly does so.
 ///
 /// Tree structures may rely on those invariants for safety.
+///
+/// [`get_unchecked`]: #method.get_unchecked " "
+/// [`get_unchecked_mut`]: #method.get_unchecked_mut " "
 pub unsafe trait Storage: Sized {
     /// The type used for element naming.
     type Key: Clone + Debug + Eq;

@@ -66,6 +66,14 @@ where
             NodeRef::new_raw_unchecked(self, self.root.clone())
         }
     }
+    /// Returns a *mutable* reference to the root node of the tree, allowing modifications to the entire tree.
+    #[inline(always)]
+    pub fn root_mut(&mut self) -> NodeRefMut<'_, B, L, K, S> {
+        unsafe {
+            // SAFETY: as above
+            NodeRefMut::new_raw_unchecked(self, self.root.clone())
+        }
+    }
 }
 impl<B, L, S> BinaryTree<B, L, usize, SparseStorage<Node<B, L, usize>, S>>
 where
