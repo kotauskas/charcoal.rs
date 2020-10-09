@@ -42,6 +42,12 @@ By default, all trees use a technique called "sparse storage" to significantly s
 - `slotmap_storage` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
 - `union_optimizations` — adds some layout optimizations by using untagged unions, decreasing memory usage in `SparseStorage`. **Requires a nightly compiler** (see [tracking issue for RFC 2514]) and thus is disabled by default.
 
+## Contributing
+You can help by contributing to Charcoal in those aspects:
+- **Algorithm optimizations** — Charcoal implements various ubiquitous algorithms for trees, and while those use a considerable amount of unsafe code, they still are never perfect and can be improved. If you find a way to improve an implementation of an algorithm in Charcoal, you're welcome to submit a PR implementing your improvement.
+- **Testing, debugging and soundness auditing** — the development cycle of Charcoal prefers quality over quantity of releases. You can help with releasing new versions faster by contributing tests and reporting potential bugs and soundness holes — those should be very rare but it's very important that they are figured out and solved before being released in a new version of the crate.
+- **Implementing more trees** — tree data structures come in various shapes and sizes. You can use the Tree Implementation Checklist (see `tree_checklist.md` in the package root) to implement a new type of tree. Charcoal aims to be the catch-all crate for all types of trees, so feel free to submit a direct PR to add your tree type instead of publishing your own Charcoal-based crate.
+
 [`Error`]: https://doc.rust-lang.org/std/error/trait.Error.html " "
 [`Vec`]: https://doc.rust-lang.org/std/vec/struct.Vec.html " "
 [`VecDeque`]: https://doc.rust-lang.org/std/collections/struct.VecDeque.html " "
