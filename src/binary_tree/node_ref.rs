@@ -73,7 +73,8 @@ where
     }
     /// Returns `true` if the node is the root node, `false` otherwise.
     #[inline(always)]
-    #[allow(clippy::missing_const_for_fn)] // const_option is not stable
+    // const_option is not stable, and so are trait bounds on const fn parameters other than Sized
+    #[allow(clippy::missing_const_for_fn)]
     pub fn is_root(&self) -> bool {
         self.node().parent.is_none()
     }
@@ -776,13 +777,13 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             let mut new_children = new_children.into_iter();
             (new_children.next(), new_children.next())
         };
-        let old_right_child = self.set_right_child_with(
-            new_right_child,
+        let old_left_child = self.set_left_child_with(
+            new_left_child,
             &mut leaf_to_branch,
             &mut branch_to_leaf,
         );
-        let old_left_child = self.set_left_child_with(
-            new_left_child,
+        let old_right_child = self.set_right_child_with(
+            new_right_child,
             &mut leaf_to_branch,
             &mut branch_to_leaf,
         );

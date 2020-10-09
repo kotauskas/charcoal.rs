@@ -1,4 +1,10 @@
-//! Binary tree — a data structure which allows at most two children for its nodes.
+//! Trees which allow at most two children for their nodes.
+//!
+//! The [Wikipedia article] on binary trees covers their use cases and specifics in more detail.
+//!
+//! Both *full* binary trees and non-full ones are supported. The former ones allow strictly either zero or two children, the latter ones also allow one child to exist without the other one. If there is only one, it's always treated as the left one, and removing the left child for a full branch will shift the right child into the position of the left one (implemented as a simple and very inexpensive key modification and does not actually move the elements themselves around).
+//!
+//! [Wikipedia article]: https://en.wikipedia.org/wiki/Binary_tree " "
 
 use core::fmt::Debug;
 use crate::{
@@ -12,14 +18,19 @@ use crate::{
 use arrayvec::ArrayVec;
 
 mod node;
+mod node_ref;
+#[cfg(test)]
+mod tests;
+
 use node::NodeData;
 pub use node::Node;
-mod node_ref;
 pub use node_ref::{NodeRef, NodeRefMut};
 
 /// A binary tree.
 ///
-/// If all nodes of a binary tree have either 0 or 2 children, it's a **full binary tree**. This type supports both full and non-full trees.
+/// See the [module-level documentation] for more.
+///
+/// [module-level documentation]: index.html " "
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BinaryTree<B, L = B, K = usize, S = DefaultStorage<Node<B, L, K>>>
 where
