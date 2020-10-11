@@ -36,6 +36,11 @@
 //! - `slotmap` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
 //! - `union_optimizations` — adds some layout optimizations by using untagged unions, decreasing memory usage in `SparseStorage`. **Requires a nightly compiler** (see [tracking issue for RFC 2514]) and thus is disabled by default.
 //!
+//! # Public dependencies
+//! - `arrayvec` (**required**) — `^0.5`
+//! - `smallvec` (*optional*) — `^1.4`
+//! - `slotmap` (*optional*) — `^0.4`
+//!
 //! # Contributing
 //! You can help by contributing to Charcoal in those aspects:
 //! - **Algorithm optimizations** — Charcoal implements various ubiquitous algorithms for trees, and while those use a considerable amount of unsafe code, they still are never perfect and can be improved. If you find a way to improve an implementation of an algorithm in Charcoal, you're welcome to submit a PR implementing your improvement.
