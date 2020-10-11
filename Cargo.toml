@@ -21,11 +21,8 @@ smallvec = {version = "1.4", optional = true}
 slotmap = {version = "0.4", optional = true}
 
 [features]
-default = ["std", "alloc", "smallvec_storage", "arrayvec_storage", "slotmap_storage"]
+default = ["std", "alloc", "smallvec", "slotmap"]
 std = []
 alloc = []
 union_optimizations = []
 #linked_list_storage = ["alloc"]
-smallvec_storage = ["smallvec"]
-arrayvec_storage = []
-slotmap_storage = ["slotmap"]

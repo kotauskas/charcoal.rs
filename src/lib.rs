@@ -32,9 +32,8 @@
 //! # Feature flags
 //! - `std` (**enabled by default**) - enables the full standard library, disabling `no_std` for the crate. Currently, this only adds [`Error`] trait implementations for some types.
 //! - `alloc` (**enabled by default**) — adds `ListStorage` trait implementations for standard library containers, except for `LinkedList`, which is temporarily unsupported. *This does not require standard library support and will only panic at runtime in `no_std` environments without an allocator.*
-//! - `smallvec_storage` (**enabled by default**) — adds a `ListStorage` trait implementation for [`SmallVec`].
-//! - `arrayvec_storage` (**enabled by default**) — adds a `ListStorage` trait implementation for [`ArrayVec`].
-//! - `slotmap_storage` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
+//! - `smallvec` (**enabled by default**) — adds a `ListStorage` trait implementation for [`SmallVec`].
+//! - `slotmap` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
 //! - `union_optimizations` — adds some layout optimizations by using untagged unions, decreasing memory usage in `SparseStorage`. **Requires a nightly compiler** (see [tracking issue for RFC 2514]) and thus is disabled by default.
 //!
 //! # Contributing
@@ -141,16 +140,15 @@ pub mod prelude {
     pub use crate::binary_tree::BinaryTree;
 }
 
-/*#[cfg(any(feature = "smallvec_storage", feature = "arrayvec_storage"))]
+/*
 const INLINE_STACK_SIZE: usize = 128;
 
-#[cfg(feature = "smallvec_storage")]
+#[cfg(feature = "smallvec)]
 pub(crate) type Stack<T> = smallvec::SmallVec<[T; INLINE_STACK_SIZE]>;
-#[cfg(all(feature = "alloc", not(feature = "smallvec_storage")))]
+#[cfg(all(feature = "alloc", not(feature = "smallvec")))]
 pub(crate) type Stack<T> = alloc::vec::Vec<T>;
 #[cfg(all(
-    feature = "arrayvec_storage",
-    not(feature = "smallvec_storage"),
+    not(feature = "smallvec"),
     not(feature = "alloc"),
 ))]
 pub(crate) type Stack<T> = arrayvec::ArrayVec<[T; INLINE_STACK_SIZE]>;*/

@@ -37,9 +37,8 @@ By default, all trees use a technique called "sparse storage" to significantly s
 ## Feature flags
 - `std` (**enabled by default**) - enables the full standard library, disabling `no_std` for the crate. Currently, this only adds [`Error`] trait implementations for some types.
 - `alloc` (**enabled by default**) — adds `ListStorage` trait implementations for standard library containers, except for `LinkedList`, which is temporarily unsupported. *This does not require standard library support and will only panic at runtime in `no_std` environments without an allocator.*
-- `smallvec_storage` (**enabled by default**) — adds a `ListStorage` trait implementation for [`SmallVec`].
-- `arrayvec_storage` (**enabled by default**) — adds a `ListStorage` trait implementation for [`ArrayVec`].
-- `slotmap_storage` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
+- `smallvec` (**enabled by default**) — adds a `ListStorage` trait implementation for [`SmallVec`].
+- `slotmap` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
 - `union_optimizations` — adds some layout optimizations by using untagged unions, decreasing memory usage in `SparseStorage`. **Requires a nightly compiler** (see [tracking issue for RFC 2514]) and thus is disabled by default.
 
 ## Contributing

@@ -14,7 +14,7 @@
 mod list;
 pub use list::*;
 
-#[cfg(feature = "slotmap_storage")]
+#[cfg(feature = "slotmap")]
 mod slotmap_impl;
 
 use core::fmt::Debug;
@@ -135,8 +135,8 @@ pub unsafe trait Storage: Sized {
 ///
 /// This is chosen according to the following strategy:
 /// - If the `alloc` feature flag is enabled, [`SparseVec`] is used
-/// - If `alloc` is disabled but `smallvec_storage` is enabled, a [*sparse*][`SparseStorage`] [`SmallVec`] *with zero-sized backing storage* is used
-/// - If both `smallvec_storage` and `alloc` are disabled, an [`ArrayVec`] *with zero-sized backing storage* is used
+/// - If `alloc` is disabled but `smallvec` is enabled, a [*sparse*][`SparseStorage`] [`SmallVec`] *with zero-sized backing storage* is used
+/// - If both `smallvec` and `alloc` are disabled, an [`ArrayVec`] *with zero-sized backing storage* is used
 /// No other storage types are ever used as defaults.
 ///
 /// [`SparseVec`]: type.SparseVec.html " "
@@ -148,22 +148,11 @@ pub type DefaultStorage<T> = _DefaultStorage<T>;
 #[cfg(feature = "alloc")]
 type _DefaultStorage<T> = SparseVec<T>;
 
-#[cfg(all(feature = "smallvec_storage", not(feature = "alloc"),))]
+#[cfg(all(feature = "smallvec", not(feature = "alloc")))]
 type _DefaultStorage<T> = SparseStorage<smallvec::SmallVec<[T; 0]>, T>;
 
 #[cfg(all(
-    feature = "arrayvec_storage",
     not(feature = "alloc"),
-    not(feature = "smallvec_storage"),
+    not(feature = "smallvec"),
 ))]
 type _DefaultStorage<T> = arrayvec::ArrayVec<[T; 0]>;
-
-#[cfg(all(
-    not(feature = "alloc"),
-    not(feature = "smallvec_storage"),
-    not(feature = "arrayvec_storage"),
-))]
-compile_error!(
-    "no default storage available, please enable one or more of the alloc, \
-smallvec_storage or arrayvec_storage feature flags"
-);
