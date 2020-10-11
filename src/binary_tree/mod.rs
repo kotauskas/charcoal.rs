@@ -8,7 +8,7 @@
 
 use core::fmt::Debug;
 use crate::{
-    storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot, SparseVec},
+    storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot},
     traversal::{Traversable, TraversableMut, VisitorDirection, CursorDirectionError},
     NodeValue,
     TryRemoveBranchError,
@@ -275,7 +275,12 @@ where
 /// The default `BinaryTree` type already uses this, so this is only provided for explicitness and consistency.
 #[cfg(feature = "alloc")]
 #[allow(unused_qualifications)]
-pub type SparseVecBinaryTree<B, L = B> = BinaryTree<B, L, usize, SparseVec<Node<B, L, usize>>>;
+pub type SparseVecBinaryTree<B, L = B> = BinaryTree<
+    B,
+    L,
+    usize,
+    crate::storage::SparseVec<Node<B, L, usize>>,
+>;
 /// A binary tree which uses a `Vec` as backing storage.
 ///
 /// The default `BinaryTree` type uses `Vec` with sparse storage. Not using sparse storage is heavily discouraged, as the memory usage penalty is negligible. Still, this is provided for convenience.
