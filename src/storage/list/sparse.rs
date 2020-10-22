@@ -44,9 +44,7 @@ where S: ListStorage<Element = Slot<E>>,
     /// Removes all holes from the sparse storage, fixing elements' indicies. **This is an expensive operation and should only be called if `is_dense` is `false` to avoid needless overhead.**
     #[inline(always)]
     pub fn defragment_and_fix(&mut self)
-    where
-        E: MoveFix,
-    {
+    where E: MoveFix {
         self.defragment_impl(|s, i, j| {
             unsafe {
                 // SAFETY: we just swapped those elements
@@ -54,10 +52,7 @@ where S: ListStorage<Element = Slot<E>>,
             }
         });
     }
-    fn defragment_impl<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut Self, usize, usize),
-    {
+    fn defragment_impl(&mut self, mut f: impl FnMut(&mut Self, usize, usize)) {
         let hole_info = if let Some(val) = self.hole_list {
             val
         } else {

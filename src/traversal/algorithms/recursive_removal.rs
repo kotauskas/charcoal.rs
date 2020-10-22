@@ -15,15 +15,11 @@ use super::{
 ///
 /// [visitor documentation]: struct.RecursiveRemovalWith.html " "
 #[inline]
-pub fn recursively_remove_with<T, F>(
+pub fn recursively_remove_with<T: TraversableMut>(
     traversable: &mut T,
     cursor: T::Cursor,
-    f: F,
-) -> NodeValue<T::Branch, T::Leaf>
-where
-    T: TraversableMut,
-    F: FnMut(T::Branch) -> T::Leaf,
-{
+    f: impl FnMut(T::Branch) -> T::Leaf,
+) -> NodeValue<T::Branch, T::Leaf> {
     let visitor = RecursiveRemovalWith::new(cursor.clone(), f);
     traversable.traverse_mut_from(cursor, visitor)
 }
@@ -106,8 +102,6 @@ pub type FnRecursiveRemoval<T> =
 /// See the struct-level documentation for a list of all panicking conditions.
 impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> VisitorMut for RecursiveRemovalWith<T, F> {
     type Target = T;
-    /// If `try_remove_children_with` was used to remove the target node, then `None` is returned. This will be changed in a future version.
-    // TODO make this an always-valid value
     type Output = NodeValue<T::Branch, T::Leaf>;
 
     #[allow(
