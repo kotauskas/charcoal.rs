@@ -125,25 +125,48 @@
 // TODO reimplement LinkedList
 //#![cfg_attr(feature = "linked_list_storage", feature(linked_list_cursors))]
 #![cfg_attr(feature = "union_optimizations", feature(untagged_unions))]
+#![cfg_attr(feature = "doc_cfg", feature(doc_cfg))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
 pub mod storage;
+#[doc(no_inline)]
 pub use storage::{Storage, ListStorage, DefaultStorage};
 
+#[cfg(feature = "binary_tree")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "binary_tree")))]
 pub mod binary_tree;
+#[cfg(feature = "binary_tree")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "binary_tree")))]
 pub use binary_tree::BinaryTree;
+
+#[cfg(feature = "octree")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "octree")))]
+pub mod octree;
+#[cfg(feature = "octree")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "octree")))]
+pub use octree::Octree;
 
 pub mod traversal;
 pub use traversal::{Visitor, VisitorMut, Traversable, TraversableMut};
 
 /// A prelude for using Charcoal, containing the most used types in a renamed form for safe glob-importing.
 pub mod prelude {
-    pub use crate::storage::ListStorage as TreeStorage;
-    pub use crate::storage::SparseStorage as SparseTreeStorage;
-    pub use crate::storage::DefaultStorage as DefaultTreeStorage;
+    #[doc(no_inline)]
+    pub use crate::storage::{
+        ListStorage as TreeStorage,
+        SparseStorage as SparseTreeStorage,
+        DefaultStorage as DefaultTreeStorage,
+    };
+    #[cfg(feature = "binary_tree")]
+    #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "binary_tree")))]
+    #[doc(no_inline)]
     pub use crate::binary_tree::BinaryTree;
+    #[cfg(feature = "octree")]
+    #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "octree")))]
+    #[doc(no_inline)]
+    pub use crate::octree::Octree;
 }
 
 /*
@@ -211,6 +234,7 @@ impl Display for TryRemoveLeafError {
     }
 }
 #[cfg(feature = "std")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "std")))]
 impl std::error::Error for TryRemoveLeafError {}
 
 /// The error type returned by methods on trees which remove branch nodes.
@@ -253,6 +277,7 @@ node had a branch child, which cannot be removed without recursion"
     }
 }
 #[cfg(feature = "std")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "std")))]
 impl std::error::Error for TryRemoveBranchError {}
 
 /// The error type returned by methods on trees which remove children branch nodes.
@@ -287,4 +312,5 @@ node had a branch child, which cannot be removed without recursion"
     }
 }
 #[cfg(feature = "std")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "std")))]
 impl std::error::Error for TryRemoveChildrenError {}

@@ -11,11 +11,13 @@ use super::{ListStorage, MoveFix};
 ///
 /// [`SparseStorage`]: struct.SparseStorage.html " "
 #[cfg(feature = "alloc")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "alloc")))]
 pub type Vec<T> = SparseStorage<T, alloc::vec::Vec<Slot<T>>>;
 /// A `VecDeque` wrapped in [`SparseStorage`].
 ///
 /// [`SparseStorage`]: struct.SparseStorage.html " "
 #[cfg(feature = "alloc")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "alloc")))]
 pub type VecDeque<T> = SparseStorage<T, alloc::collections::VecDeque<Slot<T>>>;
 
 /// A wrapper around a list-like storage type which considerably improves performance when removing elements.
