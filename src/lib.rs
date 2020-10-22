@@ -169,20 +169,12 @@ pub mod prelude {
     pub use crate::octree::Octree;
 }
 
-/*
-const INLINE_STACK_SIZE: usize = 128;
+pub(crate) mod util;
 
-#[cfg(feature = "smallvec)]
-pub(crate) type Stack<T> = smallvec::SmallVec<[T; INLINE_STACK_SIZE]>;
-#[cfg(all(feature = "alloc", not(feature = "smallvec")))]
-pub(crate) type Stack<T> = alloc::vec::Vec<T>;
-#[cfg(all(
-    not(feature = "smallvec"),
-    not(feature = "alloc"),
-))]
-pub(crate) type Stack<T> = arrayvec::ArrayVec<[T; INLINE_STACK_SIZE]>;*/
-
-use core::fmt::{self, Formatter, Display};
+use core::{
+    fmt::{self, Formatter, Display, Debug},
+    borrow::{Borrow, BorrowMut},
+};
 
 /// The payload of a node of a tree.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
