@@ -65,7 +65,8 @@
     missing_copy_implementations,
     missing_debug_implementations,
     missing_docs,
-    missing_doc_code_examples,
+    // Broken, will display warnings even for undocumented items, including trait impls
+    //missing_doc_code_examples,
     unused_qualifications,
     variant_size_differences,
     clippy::cast_lossless,
