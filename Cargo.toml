@@ -21,8 +21,37 @@ smallvec = {version = "1.4", optional = true}
 slotmap = {version = "0.4", optional = true}
 
 [features]
-default = ["std", "alloc", "smallvec", "slotmap"]
-std = []
+default = [
+    "std",
+    "alloc",
+
+    "binary_tree",
+    "octree",
+    
+    "smallvec",
+    "slotmap",
+]
+std = ["alloc"]
 alloc = []
+
+binary_tree = []
+octree = []
+
 union_optimizations = []
+doc_cfg = []
 #linked_list_storage = ["alloc"]
+
+[package.metadata.docs.rs]
+features = [
+    "std",
+    "alloc",
+
+    "binary_tree",
+    "octree",
+
+    "smallvec",
+    "slotmap",
+
+    "union_optimizations",
+    "doc_cfg",
+]
