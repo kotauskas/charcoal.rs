@@ -1,6 +1,3 @@
-// No
-#![allow(clippy::module_name_repetitions)]
-
 use core::{num::NonZeroIsize, fmt::Debug};
 use crate::{
     storage::{ListStorage, MoveFix},
@@ -8,6 +5,8 @@ use crate::{
 };
 
 /// A node of a binary tree.
+///
+/// Created by the binary tree internally and only publicly exposed so that binary tree storages' generic arguments could be specified.
 #[derive(Copy, Clone, Debug, Hash)]
 pub struct Node<B, L, K>
 where K: Clone + Debug + Eq,
@@ -25,6 +24,8 @@ where K: Clone + Debug + Eq,
             parent,
         }
     }
+    /*
+    Reenable if ever needed
     #[inline(always)]
     pub(crate) unsafe fn partial_branch(payload: B, child: K, parent: Option<K>) -> Self {
         Self {
@@ -48,6 +49,7 @@ where K: Clone + Debug + Eq,
             parent,
         }
     }
+    */
     /// Creates a root node.
     ///
     /// # Safety
@@ -107,7 +109,7 @@ impl<B, L> MoveFix for Node<B, L, usize> {
     }
 }
 
-#[derive(Copy, Clone, Debug, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) enum NodeData<B, L, K>
 where K: Clone + Debug + Eq,
 {

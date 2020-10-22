@@ -6,7 +6,7 @@
 //!
 //! [Wikipedia article]: https://en.wikipedia.org/wiki/Binary_tree " "
 
-use core::fmt::Debug;
+use core::fmt::{self, Formatter, Debug, Display};
 use crate::{
     storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot},
     traversal::{Traversable, TraversableMut, VisitorDirection, CursorDirectionError},
@@ -45,7 +45,7 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
-    /// Creates an binary tree with the specified value for the root node.
+    /// Creates a binary tree with the specified value for the root node.
     #[inline(always)]
     pub fn new(root: L) -> Self {
         let mut storage = S::new();
@@ -55,7 +55,7 @@ where
         });
         Self { storage, root }
     }
-    /// Creates an empty binary with the specified capacity for the storage.
+    /// Creates an empty binary tree with the specified capacity for the storage.
     ///
     /// # Panics
     /// The storage may panic if it has fixed capacity and the specified value does not match it.
@@ -160,6 +160,13 @@ where
     }
     #[inline]
     #[track_caller]
+    fn parent_of(&self, cursor: &Self::Cursor) -> Option<Self::Cursor> {
+        let node_ref = NodeRef::new_raw(self, cursor.clone())
+            .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
+        node_ref.parent().map(NodeRef::into_raw_key)
+    }
+    #[inline]
+    #[track_caller]
     fn num_children_of(&self, cursor: &Self::Cursor) -> usize {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
@@ -170,13 +177,6 @@ where
         } else {
             0
         }
-    }
-    #[inline]
-    #[track_caller]
-    fn parent_of(&self, cursor: &Self::Cursor) -> Option<Self::Cursor> {
-        let node_ref = NodeRef::new_raw(self, cursor.clone())
-            .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
-        node_ref.parent().map(NodeRef::into_raw_key)
     }
     #[inline]
     #[track_caller]
@@ -270,10 +270,57 @@ where
     }
 }
 
+/// The error type returned by [`NodeRefMut::make_full_branch`].
+///
+/// [`NodeRefMut::make_full_branch`]: struct.NodeRefMut.html#method.make_full_branch " "
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum MakeFullBranchError<L> {
+    /// The node was a leaf node, not a partial branch. You can use [`make_branch`]/[`make_branch_with`] to add both children at once instead.
+    ///
+    /// [`make_branch`]: struct.NodeRefMut.html#method.make_branch " "
+    /// [`make_branch_with`]: struct.NodeRefMut.html#method.make_branch_with " "
+    WasLeafNode {
+        /// The provided right child to add, which was deemed useless when the operation failed and is returned to the caller to avoid dropping it.
+        right_child: L,
+    },
+    /// The node already was a full branch.
+    WasFullBranch {
+        /// The provided right child to add, which was deemed useless when the operation failed and is returned to the caller to avoid dropping it.
+        right_child: L,
+    },
+}
+impl<L> MakeFullBranchError<L> {
+    /// Extracts the provided right child to add, which was deemed useless when the operation failed.
+    #[inline(always)]
+    #[allow(clippy::missing_const_for_fn)] // Clippy has no idea what a destructor is
+    pub fn right_child(self) -> L {
+        match self {
+              Self::WasLeafNode   { right_child }
+            | Self::WasFullBranch { right_child }
+            => right_child,
+        }
+    }
+}
+impl<L> Display for MakeFullBranchError<L> {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(
+            match self {
+                Self::WasLeafNode {..} => "the node was a leaf, not a partial branch",
+                Self::WasFullBranch {..} => "the node already was a full branch",
+            }
+        )
+    }
+}
+#[cfg(feature = "std")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "std")))]
+impl<L: Debug> std::error::Error for MakeFullBranchError<L> {}
+
 /// A binary tree which uses a *sparse* `Vec` as backing storage.
 ///
 /// The default `BinaryTree` type already uses this, so this is only provided for explicitness and consistency.
 #[cfg(feature = "alloc")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "alloc")))]
 #[allow(unused_qualifications)]
 pub type SparseVecBinaryTree<B, L = B> = BinaryTree<
     B,
@@ -285,6 +332,7 @@ pub type SparseVecBinaryTree<B, L = B> = BinaryTree<
 ///
 /// The default `BinaryTree` type uses `Vec` with sparse storage. Not using sparse storage is heavily discouraged, as the memory usage penalty is negligible. Still, this is provided for convenience.
 #[cfg(feature = "alloc")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "alloc")))]
 #[allow(unused_qualifications)]
 pub type VecBinaryTree<B, L = B> = BinaryTree<B, L, usize, alloc::vec::Vec<Node<B, L, usize>>>;
 

@@ -9,12 +9,18 @@ use crate::{
     TryRemoveLeafError,
     TryRemoveBranchError,
     TryRemoveChildrenError,
+    MakeBranchError,
     storage::{Storage, DefaultStorage},
     traversal::algorithms,
     NodeValue,
 };
 use arrayvec::ArrayVec;
-use super::{BinaryTree, Node, NodeData};
+use super::{
+    BinaryTree,
+    Node,
+    NodeData,
+    MakeFullBranchError,
+};
 
 /// A reference to a node in a binary tree.
 ///
@@ -79,14 +85,20 @@ where
         self.node().parent.is_none()
     }
     /// Returns `true` if the node is a *leaf*, i.e. does not have child nodes; `false` otherwise.
-    #[inline(always)]
+    #[inline]
     pub fn is_leaf(&self) -> bool {
-        !self.is_branch()
+        match &self.node().value {
+            NodeData::Branch {..} => false,
+            NodeData::Leaf(..) => true,
+        }
     }
     /// Returns `true` if the node is a *branch*, i.e. has one or two child nodes; `false` otherwise.
-    #[inline(always)]
+    #[inline]
     pub fn is_branch(&self) -> bool {
-        self.left_child().is_some()
+        match &self.node().value {
+            NodeData::Branch {..} => true,
+            NodeData::Leaf(..) => false,
+        }
     }
     /// Returns `true` if the node is a *full branch*, i.e. has exactly two child nodes; `false` otherwise.
     #[inline(always)]
@@ -171,6 +183,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         })
     }
 
+    #[inline(always)]
     fn node(&self) -> &'a Node<B, L, K> {
         unsafe {
             // SAFETY: all existing NodeRefs are guaranteed to not be dangling
@@ -182,8 +195,7 @@ impl<B, L, K, S> Copy for NodeRef<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Copy + Debug + Eq,
-{
-}
+{}
 impl<B, L, K, S> Clone for NodeRef<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
@@ -279,14 +291,20 @@ where
         self.node().parent.is_none()
     }
     /// Returns `true` if the node is a *leaf*, i.e. does not have child nodes; `false` otherwise.
-    #[inline(always)]
+    #[inline]
     pub fn is_leaf(&self) -> bool {
-        !self.is_branch()
+        match &self.node().value {
+            NodeData::Branch {..} => false,
+            NodeData::Leaf(..) => true,
+        }
     }
     /// Returns `true` if the node is a *branch*, i.e. has one or two child nodes; `false` otherwise.
-    #[inline(always)]
+    #[inline]
     pub fn is_branch(&self) -> bool {
-        self.left_child().is_some()
+        match &self.node().value {
+            NodeData::Branch {..} => true,
+            NodeData::Leaf(..) => false,
+        }
     }
     /// Returns `true` if the node is a *full branch*, i.e. has exactly two child nodes; `false` otherwise.
     #[inline(always)]
@@ -308,7 +326,7 @@ where
         NodeRef::from(self).left_child()
     }
     /// Returns a *mutable* reference to the left child, or `None` if the node is a leaf node.
-    pub fn left_child_mut(&'a mut self) -> Option<Self> {
+    pub fn left_child_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         match &self.node().value {
             NodeData::Branch { left_child, .. } => Some(left_child.clone()),
             NodeData::Leaf(..) => None,
@@ -346,6 +364,101 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             Self::new_raw_unchecked(self.tree, x)
         })
     }
+    
+    /// Converts a leaf node into a branch node with the specified leaf children, using the provided closure to convert the payload.
+    ///
+    /// # Errors
+    /// Will fail if the node is already a branch node. In such a case, the provided values for the children are returned back to the caller.
+    pub fn make_branch_with(
+        &mut self,
+        children: (L, Option<L>),
+        f: impl FnOnce(L) -> B,
+    ) -> Result<(), MakeBranchError<L, ArrayVec<[L; 2]>>> {
+        let old_val_ref = match &self.node().value {
+            NodeData::Leaf(val) => val,
+            NodeData::Branch {..} => {
+                return Err(MakeBranchError {
+                    packed_children: {
+                        let mut pack = ArrayVec::new();
+                        pack.push(children.0);
+                        if let Some(x) = children.1 {
+                            pack.push(x);
+                        }
+                        pack
+                    }
+                })
+            },
+        };
+        let old_val = unsafe {
+            // SAFETY: the pointer is a valid reference, and we're overwriting the value up next
+            ptr::read(old_val_ref)
+        };
+        let new_val = f(old_val);
+        let new_left_child_key = self.tree.storage.add(
+            unsafe {
+                // SAFETY: key validity is assumed
+                Node::leaf(children.0, Some(self.raw_key().clone()))
+            }
+        );
+        let new_right_child_key = children.1.map(|x| {
+            self.tree.storage.add(
+                unsafe {
+                    Node::leaf(x, Some(self.raw_key().clone()))
+                }
+            )
+        });
+        unsafe {
+            // SAFETY: see ptr::read safety notes above
+            ptr::write(
+                &mut self.node_mut().value,
+                NodeData::Branch {
+                    payload: new_val,
+                    left_child: new_left_child_key,
+                    right_child: new_right_child_key,
+                }
+            )
+        }
+        Ok(())
+    }
+    /// Converts a partial branch node into a full branch, giving the specified value to the right child.
+    ///
+    /// # Errors
+    /// Will fail if:
+    /// - The node was a leaf node — you can use [`make_branch`]/[`make_branch_with`] instead;
+    /// - The node already was a full branch.
+    ///
+    /// In both cases, the provided right child value will not be dropped but instead will be returned to the caller in the error type.
+    ///
+    /// [`make_branch`]: #method.make_branch " "
+    /// [`make_branch_with`]: #method.make_branch_with " "
+    pub fn make_full_branch(&mut self, right_child: L) -> Result<(), MakeFullBranchError<L>> {
+        match &self.node().value {
+            NodeData::Branch { right_child: Some(_), .. } => {
+                return Err(MakeFullBranchError::WasFullBranch {right_child});
+            },
+            NodeData::Branch {..} => {},
+            NodeData::Leaf(_) => {
+                return Err(MakeFullBranchError::WasLeafNode {right_child});
+            },
+        }
+        let new_right_child_key = self.tree.storage.add(
+            unsafe {
+                // SAFETY: parent validity is assumed via key validity of self
+                Node::leaf(right_child, Some(self.raw_key().clone()))
+            }
+        );
+        match &mut self.node_mut().value {
+            NodeData::Branch {right_child, ..} => {
+                *right_child = Some(new_right_child_key);
+            },
+            _ => unsafe {
+                // SAFETY: leaf check was performed in the beginning
+                hint::unreachable_unchecked()
+            },
+        }
+        Ok(())
+    }
+
     /// Attempts to remove a leaf node without using recursion. If its parent only had one child, it's replaced with a leaf node, the value for which is provided by the specified closure (the previous value is passed into the closure).
     ///
     /// # Errors
@@ -607,18 +720,20 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     }
     /// Recursively removes the specified node and all its descendants, using a closure to patch nodes which transition from having one child to having zero children.
     #[inline(always)]
-    pub fn recursively_remove_with<F: FnMut(B) -> L>(self, f: F) -> NodeValue<B, L> {
+    pub fn recursively_remove_with(self, f: impl FnMut(B) -> L) -> NodeValue<B, L> {
         algorithms::recursively_remove_with(self.tree, self.key, f)
     }
+    /*
+    Disabled due to usefulness doubts
     /// Sets the left child's value, either adding a new value if the node was a leaf node, replacing the old one if it was a partial or full branch, or removing the value if `None` is supplied. In the `None` case, if there is also a right child (full branch), the right child is shifted to become the left child.
     ///
     /// If the node was a leaf before and adding a child requested, the old value is passed to first closure and replaced with a new branch payload; if it was a branch before and removing its only child is requested, the old value is passed to the second closure and replaced with a new leaf payload. *Those closures are also used during recursive removal, if the left child gets overwritten.*
     #[allow(clippy::option_if_let_else)] // Disagrees with the drop checker
-    pub fn set_left_child_with<LtB: FnMut(L) -> B, BtL: FnMut(B) -> L>(
+    pub fn set_left_child_with(
         &mut self,
         new_left_child: Option<L>,
-        mut leaf_to_branch: LtB,
-        mut branch_to_leaf: BtL,
+        mut leaf_to_branch: impl FnMut(L) -> B,
+        mut branch_to_leaf: impl FnMut(B) -> L,
     ) -> Option<NodeValue<B, L>> {
         let new_left_child_key = new_left_child.map(|new_left_child| {
             self.tree.storage.add(unsafe {
@@ -691,11 +806,11 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     ///
     /// If the node was a leaf before and adding a child requested, the old value is passed to first closure and replaced with a new branch payload; if it was a branch before and removing its only child is requested, the old value is passed to the second closure and replaced with a new leaf payload. *Those closures are also used during recursive removal, if the right child gets overwritten.*
     #[allow(clippy::option_if_let_else)] // as in set_left_child_with
-    pub fn set_right_child_with<LtB: FnMut(L) -> B, BtL: FnMut(B) -> L>(
+    pub fn set_right_child_with(
         &mut self,
         new_right_child: Option<L>,
-        mut leaf_to_branch: LtB,
-        mut branch_to_leaf: BtL,
+        mut leaf_to_branch: impl FnMut(L) -> B,
+        mut branch_to_leaf: impl FnMut(B) -> L,
     ) -> Option<NodeValue<B, L>> {
         let new_right_child_key = new_right_child.map(|new_right_child| {
             self.tree.storage.add(unsafe {
@@ -793,6 +908,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         old_right_child.map(&mut conditionally_add);
         result
     }
+    */
 
     #[inline(always)]
     fn node(&self) -> &'_ Node<B, L, K> {
@@ -814,6 +930,18 @@ where
     S: Storage<Element = Node<D, D, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
+    /// Converts a leaf node into a branch node with the specified leaf children, keeping its payload. Because of that, *this method is only available when the payload for leaf nodes and branch nodes is the same.*
+    ///
+    /// # Errors
+    /// Will fail if the node is already a branch node. In such a case, the provided values for the children are returned back to the caller.
+    #[inline(always)]
+    pub fn make_branch(
+        &mut self,
+        children: (D, Option<D>),
+    ) -> Result<(), MakeBranchError<D, ArrayVec<[D; 2]>>> {
+        self.make_branch_with(children, convert::identity)
+    }
+
     /// Attempts to remove the node without using recursion. If the parent only had one child, it's replaced with a leaf node, keeping its original payload, which is why *this method is only available when the payload for leaf nodes and branch nodes is the same.*
     ///
     /// # Errors
@@ -850,6 +978,8 @@ where
     pub fn recursively_remove(self) -> NodeValue<D> {
         algorithms::recursively_remove(self.tree, self.key)
     }
+    /*
+    Disabled due to usefulness doubts
     /// Sets the children of the node to specified zero, one or two children. If there were children before and the method would otherwise drop them, they are instead bundled and returned.
     ///
     /// If any nodes transition from leaf to branch or the other way around, their payload is preserved, which is why *this method is only available when the payload for leaf nodes and branch nodes is the same.*
@@ -860,6 +990,7 @@ where
     ) -> ArrayVec<[NodeValue<D>; 2]> {
         self.set_children_with(new_children, convert::identity, convert::identity)
     }
+    */
 }
 impl<'a, B, L, K, S> From<&'a NodeRefMut<'a, B, L, K, S>> for NodeValue<&'a B, &'a L>
 where

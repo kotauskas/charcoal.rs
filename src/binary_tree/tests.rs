@@ -1,10 +1,9 @@
 use super::*;
-use arrayvec::ArrayVec;
 
 #[test]
 fn basic() {
     let mut tree: BinaryTree<u64> = BinaryTree::new(1987_u64);
-    tree.root_mut().set_children(ArrayVec::from([83, 87]));
+    tree.root_mut().make_branch((83, Some(87))).unwrap();
     
     let left_child_val = tree.root().left_child().as_ref().map(NodeRef::value);
     let right_child_val = tree.root().right_child().as_ref().map(NodeRef::value);
