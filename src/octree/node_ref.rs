@@ -528,6 +528,17 @@ where
     S: Storage<Element = Node<D, D, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
+    /// Converts a leaf node into a branch node with the specified leaf children, keeping its payload. Because of that, *this method is only available when the payload for leaf nodes and branch nodes is the same.*
+    ///
+    /// # Errors
+    /// Will fail if the node is already a branch node. In such a case, the provided values for the children are returned back to the caller.
+    #[inline(always)]
+    pub fn make_branch(
+        &mut self,
+        children: [D; 8],
+    ) -> Result<(), MakeBranchError<D, PackedChildren<D>>> {
+        self.make_branch_with(children, convert::identity)
+    }
     /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, keeping its original payload. Because of that, *this method is only available when the payload for leaf nodes and branch nodes is the same.*
     ///
     /// # Errors

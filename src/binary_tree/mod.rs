@@ -9,7 +9,7 @@
 //! use charcoal::binary_tree::{BinaryTree, NodeRef};
 //!
 //! // Create the tree. The only thing we need for that is the data payload for the root node.
-//! let mut tree = BinaryTree::new("Welcome".to_string());
+//! let mut tree: BinaryTree<String> = BinaryTree::new("Welcome".to_string());
 //!
 //! // Let's now try to access the structure of the tree and look around.
 //! let root = tree.root();
@@ -78,7 +78,7 @@ where
     /// ```rust
     /// # use charcoal::BinaryTree;
     /// // The only way to create a tree...
-    /// let tree = BinaryTree::new(87);
+    /// let tree: BinaryTree<u32> = BinaryTree::new(87);
     /// // ...is to simply create the root leaf node and storage.
     ///
     /// // No other nodes have been created yet:
@@ -102,7 +102,7 @@ where
     /// ```rust
     /// # use charcoal::BinaryTree;
     /// // Let's create a tree, but with some preallocated space for more nodes:
-    /// let tree = BinaryTree::with_capacity(3, "19");
+    /// let mut tree: BinaryTree<&'static str> = BinaryTree::with_capacity(3, "19");
     ///
     /// // Capacity does not affect the actual nodes:
     /// assert!(tree.root().is_leaf());
@@ -128,13 +128,13 @@ where
     /// ```rust
     /// # use charcoal::BinaryTree;
     /// // A tree always has a root node:
-    /// let tree = BinaryTree::new("Root");
+    /// let tree: BinaryTree<&'static str> = BinaryTree::new("Root");
     ///
     /// assert_eq!(
     ///     // The into_inner() call extracts data from a NodeValue, which is used to generalize
     ///     // tres to both work with same and different types for payloads of leaf and branch
     ///     // nodes.
-    ///     tree.root().value().into_inner(),
+    ///     *tree.root().value().into_inner(),
     ///     "Root",
     /// );
     /// ```
@@ -152,16 +152,12 @@ where
     /// ```rust
     /// # use charcoal::BinaryTree;
     /// // A tree always has a root node:
-    /// let mut tree = BinaryTree::new("Root");
+    /// let mut tree: BinaryTree<&'static str> = BinaryTree::new("Root");
     ///
-    /// let value_mut = tree
-    ///     .root_mut()
-    ///     .value_mut()
-    ///     // The into_inner() call extracts data from a NodeValue, which is used to generalize
-    ///     // tres to both work with same and different types for payloads of leaf and branch
-    ///     // nodes.
-    ///     .into_inner();
-    /// *value_mut = "The Source of the Beer";
+    /// let mut root_mut = tree.root_mut();
+    /// // The into_inner() call extracts data from a NodeValue, which is used to generalize
+    /// // tres to both work with same and different types for payloads of leaf and branch nodes.
+    /// *(root_mut.value_mut().into_inner()) = "The Source of the Beer";
     /// ```
     #[inline(always)]
     pub fn root_mut(&mut self) -> NodeRefMut<'_, B, L, K, S> {
@@ -193,7 +189,7 @@ where
     /// let old_left_child =
     ///     tree
     ///     .root_mut()
-    ///     .left_child()
+    ///     .left_child_mut()
     ///     .unwrap() // You can replace this with proper error handling
     ///     .try_remove_leaf()
     ///     .unwrap(); // Same here

@@ -7,7 +7,7 @@
 //! use charcoal::octree::{Octree, NodeRef};
 //!
 //! // Create the tree. The only thing we need for that is the data payload for the root node.
-//! let mut tree = Octree::new(451);
+//! let mut tree: Octree<u32> = Octree::new(451);
 //!
 //! // Let's now try to access the structure of the tree and look around.
 //! let root = tree.root();
@@ -28,8 +28,15 @@
 //!
 //! // Let's return to an immutable reference and look at our tree.
 //! let root = NodeRef::from(root); // Conversion from a mutable to an immutable reference
-//! assert_eq!(root.value().into_inner(), my_numbers);
-//! let children = root.children().unwrap();
+//! assert_eq!(root.value().into_inner(), &120);
+//! let children = {
+//!     let children_refs = root.children().unwrap();
+//!     let get_val = |x| children_refs[x].value().into_inner();
+//!     [
+//!         get_val(0), get_val(1), get_val(2), get_val(3),
+//!         get_val(4), get_val(5), get_val(6), get_val(7),
+//!     ]
+//! };
 //! assert_eq!(children, my_numbers);
 //! ```
 //!
@@ -84,7 +91,7 @@ where
     /// ```rust
     /// # use charcoal::Octree;
     /// // The only way to create a tree...
-    /// let tree = Octree::new(87);
+    /// let tree: Octree<u32> = Octree::new(87);
     /// // ...is to simply create the root leaf node and storage.
     ///
     /// // No other nodes have been created yet:
@@ -108,7 +115,7 @@ where
     /// ```rust
     /// # use charcoal::Octree;
     /// // Let's create a tree, but with some preallocated space for more nodes:
-    /// let tree = Octree::with_capacity(9, "Variable Names");
+    /// let mut tree: Octree<&'static str> = Octree::with_capacity(9, "Variable Names");
     ///
     /// // Capacity does not affect the actual nodes:
     /// assert!(tree.root().is_leaf());
@@ -137,13 +144,13 @@ where
     /// ```rust
     /// # use charcoal::Octree;
     /// // A tree always has a root node:
-    /// let tree = Octree::new("Root");
+    /// let tree: Octree<&'static str> = Octree::new("Root");
     ///
     /// assert_eq!(
     ///     // The into_inner() call extracts data from a NodeValue, which is used to generalize
     ///     // tres to both work with same and different types for payloads of leaf and branch
     ///     // nodes.
-    ///     tree.root().value().into_inner(),
+    ///     *tree.root().value().into_inner(),
     ///     "Root",
     /// );
     /// ```
@@ -161,16 +168,12 @@ where
     /// ```rust
     /// # use charcoal::Octree;
     /// // A tree always has a root node:
-    /// let mut tree = Octree::new("Root");
+    /// let mut tree: Octree<&'static str> = Octree::new("Root");
     ///
-    /// let value_mut = tree
-    ///     .root_mut()
-    ///     .value_mut()
-    ///     // The into_inner() call extracts data from a NodeValue, which is used to generalize
-    ///     // tres to both work with same and different types for payloads of leaf and branch
-    ///     // nodes.
-    ///     .into_inner();
-    /// *value_mut = "The Source of the Beer";
+    /// let mut root_mut = tree.root_mut();
+    /// // The into_inner() call extracts data from a NodeValue, which is used to generalize trees
+    /// // to both work with same and different types for payloads of leaf and branch nodes.
+    /// *(root_mut.value_mut().into_inner()) = "The Source of the Beer";
     /// ```
     #[inline(always)]
     pub fn root_mut(&mut self) -> NodeRefMut<'_, B, L, K, S> {
@@ -202,7 +205,7 @@ where
     /// ]);
     /// tree
     ///     .root_mut()
-    ///     .nth_child(0)
+    ///     .nth_child_mut(0)
     ///     .unwrap() // You can replace this with proper error handling
     ///     .make_branch([
     ///         9, 10, 11, 12, 13, 14, 15, 16,
@@ -211,7 +214,7 @@ where
     ///
     /// tree
     ///     .root_mut()
-    ///     .left_child()
+    ///     .nth_child_mut(0)
     ///     .unwrap() // Same as above
     ///     .try_remove_children()
     ///     .unwrap(); // Same here
@@ -455,3 +458,23 @@ impl<T> ExactSizeIterator for PackedChildrenIter<T> {
     }
 }
 impl<T> FusedIterator for PackedChildrenIter<T> {}
+
+/// An octree which uses a *sparse* `Vec` as backing storage.
+///
+/// The default `Octree` type already uses this, so this is only provided for explicitness and consistency.
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "alloc")))]
+#[allow(unused_qualifications)]
+pub type SparseVecOctree<B, L = B> = Octree<
+    B,
+    L,
+    usize,
+    crate::storage::SparseVec<Node<B, L, usize>>,
+>;
+/// An octree which uses a `Vec` as backing storage.
+///
+/// The default `Octree` type uses `Vec` with sparse storage. Not using sparse storage is heavily discouraged, as the memory usage penalty is negligible. Still, this is provided for convenience.
+#[cfg(feature = "alloc")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "alloc")))]
+#[allow(unused_qualifications)]
+pub type VecOctree<B, L = B> = Octree<B, L, usize, alloc::vec::Vec<Node<B, L, usize>>>;
