@@ -202,6 +202,46 @@ impl<B, L> NodeValue<B, L> {
         }
     }
 }
+impl<T> NodeValue<T, T> {
+    /// Extracts the value, discarding information about whether the node was a leaf or branch. *Available only if the leaf and branch payloads are the same type.*
+    #[inline(always)]
+    #[allow(clippy::missing_const_for_fn)]
+    pub fn into_inner(self) -> T {
+        match self {
+              NodeValue::Branch(x)
+            | NodeValue::Leaf(x)
+            => x,
+        }
+    }
+}
+// FIXME a From conversion here might become possible at some point
+impl<T> AsRef<T> for NodeValue<T, T> {
+    #[inline(always)]
+    fn as_ref(&self) -> &T {
+        self.as_ref().into_inner()
+    }
+}
+impl<T> AsRef<T> for NodeValue<&T, &T> {
+    #[inline(always)]
+    fn as_ref(&self) -> &T {
+        self.into_inner()
+    }
+}
+impl<T> AsMut<T> for NodeValue<T, T> {
+    #[inline(always)]
+    fn as_mut(&mut self) -> &mut T {
+        self.as_mut().into_inner()
+    }
+}
+impl<'a, T> AsMut<T> for NodeValue<&'a mut T, &'a mut T> {
+    #[inline(always)]
+    fn as_mut(&mut self) -> &mut T {
+        match self {
+              NodeValue::Branch(x)
+            | NodeValue::Leaf(x) => x,
+        }
+    }
+}
 
 /// The error type returned by methods on trees which remove leaf nodes.
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
