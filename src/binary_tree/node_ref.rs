@@ -371,7 +371,8 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     /// Will fail if the node is already a branch node. In such a case, the provided values for the children are returned back to the caller.
     pub fn make_branch_with(
         &mut self,
-        children: (L, Option<L>),
+        left_child: L,
+        right_child: Option<L>,
         f: impl FnOnce(L) -> B,
     ) -> Result<(), MakeBranchError<L, ArrayVec<[L; 2]>>> {
         let old_val_ref = match &self.node().value {
@@ -380,8 +381,8 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 return Err(MakeBranchError {
                     packed_children: {
                         let mut pack = ArrayVec::new();
-                        pack.push(children.0);
-                        if let Some(x) = children.1 {
+                        pack.push(left_child);
+                        if let Some(x) = right_child {
                             pack.push(x);
                         }
                         pack
@@ -397,10 +398,10 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         let new_left_child_key = self.tree.storage.add(
             unsafe {
                 // SAFETY: key validity is assumed
-                Node::leaf(children.0, Some(self.raw_key().clone()))
+                Node::leaf(left_child, Some(self.raw_key().clone()))
             }
         );
-        let new_right_child_key = children.1.map(|x| {
+        let new_right_child_key = right_child.map(|x| {
             self.tree.storage.add(
                 unsafe {
                     Node::leaf(x, Some(self.raw_key().clone()))
@@ -937,9 +938,10 @@ where
     #[inline(always)]
     pub fn make_branch(
         &mut self,
-        children: (D, Option<D>),
+        left_child: D,
+        right_child: Option<D>,
     ) -> Result<(), MakeBranchError<D, ArrayVec<[D; 2]>>> {
-        self.make_branch_with(children, convert::identity)
+        self.make_branch_with(left_child, right_child, convert::identity)
     }
 
     /// Attempts to remove the node without using recursion. If the parent only had one child, it's replaced with a leaf node, keeping its original payload, which is why *this method is only available when the payload for leaf nodes and branch nodes is the same.*
