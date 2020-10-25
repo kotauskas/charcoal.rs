@@ -8,8 +8,10 @@
 //! ```rust
 //! use charcoal::binary_tree::{BinaryTree, NodeRef};
 //!
-//! // Create the tree. The only thing we need for that is the data payload for the root node.
-//! let mut tree: BinaryTree<String> = BinaryTree::new("Welcome".to_string());
+//! // Create the tree. The only thing we need for that is the data payload for the root node. The
+//! // turbofish there is needed to state that we are using the default storage method instead of
+//! // asking the compiler to infer it, which would be impossible.
+//! let mut tree = BinaryTree::<_>::new("Welcome".to_string());
 //!
 //! // Let's now try to access the structure of the tree and look around.
 //! let root = tree.root();
@@ -21,7 +23,7 @@
 //! // First things first, we want to change our root's data payload:
 //! *(root.value_mut().into_inner()) = "Hello".to_string();
 //! // While we're at it, let's add some child nodes:
-//! root.make_branch("World".to_string(), Some( "Rust".to_string() ));
+//! root.make_branch("World".to_string(), Some( "Rust".to_string() )).unwrap();
 //!
 //! // Let's return to an immutable reference and look at our tree.
 //! let root = NodeRef::from(root); // Conversion from a mutable to an immutable reference
@@ -46,8 +48,6 @@ use arrayvec::ArrayVec;
 
 mod node;
 mod node_ref;
-#[cfg(test)]
-mod tests;
 
 use node::NodeData;
 pub use node::Node;
@@ -78,8 +78,10 @@ where
     /// ```rust
     /// # use charcoal::BinaryTree;
     /// // The only way to create a tree...
-    /// let tree: BinaryTree<u32> = BinaryTree::new(87);
-    /// // ...is to simply create the root leaf node and storage.
+    /// let tree = BinaryTree::<_>::new(87);
+    /// // ...is to simply create the root leaf node and storage. The turbofish there is needed to
+    /// // state that we are using the default storage method instead of asking the compiler to
+    /// // infer it, which would be impossible.
     ///
     /// // No other nodes have been created yet:
     /// assert!(tree.root().is_leaf());
@@ -102,7 +104,9 @@ where
     /// ```rust
     /// # use charcoal::BinaryTree;
     /// // Let's create a tree, but with some preallocated space for more nodes:
-    /// let mut tree: BinaryTree<&'static str> = BinaryTree::with_capacity(3, "19");
+    /// let mut tree = BinaryTree::<_>::with_capacity(3, "19");
+    /// // The turbofish there is needed to state that we are using the default storage method
+    /// // instead of asking the compiler to infer it, which would be impossible.
     ///
     /// // Capacity does not affect the actual nodes:
     /// assert!(tree.root().is_leaf());
@@ -128,7 +132,7 @@ where
     /// ```rust
     /// # use charcoal::BinaryTree;
     /// // A tree always has a root node:
-    /// let tree: BinaryTree<&'static str> = BinaryTree::new("Root");
+    /// let tree = BinaryTree::<_>::new("Root");
     ///
     /// assert_eq!(
     ///     // The into_inner() call extracts data from a NodeValue, which is used to generalize
@@ -152,7 +156,7 @@ where
     /// ```rust
     /// # use charcoal::BinaryTree;
     /// // A tree always has a root node:
-    /// let mut tree: BinaryTree<&'static str> = BinaryTree::new("Root");
+    /// let mut tree = BinaryTree::<_>::new("Root");
     ///
     /// let mut root_mut = tree.root_mut();
     /// // The into_inner() call extracts data from a NodeValue, which is used to generalize

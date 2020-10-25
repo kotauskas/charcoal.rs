@@ -6,8 +6,10 @@
 //! ```rust
 //! use charcoal::octree::{Octree, NodeRef};
 //!
-//! // Create the tree. The only thing we need for that is the data payload for the root node.
-//! let mut tree: Octree<u32> = Octree::new(451);
+//! // Create the tree. The only thing we need for that is the data payload for the root node. The
+//! // turbofish there is needed to state that we are using the default storage method instead of
+//! // asking the compiler to infer it, which would be impossible.
+//! let mut tree = Octree::<_>::new(451);
 //!
 //! // Let's now try to access the structure of the tree and look around.
 //! let root = tree.root();
@@ -24,14 +26,18 @@
 //!     // example we can use absolutely any kind of data. Bonus points for finding hidden meaning.
 //!     2010, 2014, 1987, 1983, 1993, 2023, 621, 926,
 //! ];
-//! root.make_branch(my_numbers);
+//! root.make_branch(my_numbers).unwrap();
 //!
 //! // Let's return to an immutable reference and look at our tree.
 //! let root = NodeRef::from(root); // Conversion from a mutable to an immutable reference
 //! assert_eq!(root.value().into_inner(), &120);
 //! let children = {
 //!     let children_refs = root.children().unwrap();
-//!     let get_val = |x| children_refs[x].value().into_inner();
+//!     let get_val = |x| {
+//!         // Type inference decided to abandon us here
+//!         let x: NodeRef<'_, _, _, _> = children_refs[x];
+//!         *x.value().into_inner()
+//!     };
 //!     [
 //!         get_val(0), get_val(1), get_val(2), get_val(3),
 //!         get_val(4), get_val(5), get_val(6), get_val(7),
@@ -59,8 +65,6 @@ use arrayvec::{ArrayVec, IntoIter as ArrayVecIntoIter};
 
 mod node;
 mod node_ref;
-#[cfg(test)]
-mod tests;
 
 use node::NodeData;
 pub use node::Node;
@@ -91,8 +95,10 @@ where
     /// ```rust
     /// # use charcoal::Octree;
     /// // The only way to create a tree...
-    /// let tree: Octree<u32> = Octree::new(87);
-    /// // ...is to simply create the root leaf node and storage.
+    /// let tree = Octree::<_>::new(87);
+    /// // ...is to simply create the root leaf node and storage. The turbofish there is needed to
+    /// // state that we are using the default storage method instead of asking the compiler to
+    /// // infer it, which would be impossible.
     ///
     /// // No other nodes have been created yet:
     /// assert!(tree.root().is_leaf());
@@ -115,7 +121,9 @@ where
     /// ```rust
     /// # use charcoal::Octree;
     /// // Let's create a tree, but with some preallocated space for more nodes:
-    /// let mut tree: Octree<&'static str> = Octree::with_capacity(9, "Variable Names");
+    /// let mut tree = Octree::<_>::with_capacity(9, "Variable Names");
+    /// // The turbofish there is needed to state that we are using the default storage method
+    /// // instead of asking the compiler to infer it, which would be impossible.
     ///
     /// // Capacity does not affect the actual nodes:
     /// assert!(tree.root().is_leaf());
@@ -144,7 +152,7 @@ where
     /// ```rust
     /// # use charcoal::Octree;
     /// // A tree always has a root node:
-    /// let tree: Octree<&'static str> = Octree::new("Root");
+    /// let tree = Octree::<_>::new("Root");
     ///
     /// assert_eq!(
     ///     // The into_inner() call extracts data from a NodeValue, which is used to generalize
@@ -168,7 +176,7 @@ where
     /// ```rust
     /// # use charcoal::Octree;
     /// // A tree always has a root node:
-    /// let mut tree: Octree<&'static str> = Octree::new("Root");
+    /// let mut tree = Octree::<_>::new("Root");
     ///
     /// let mut root_mut = tree.root_mut();
     /// // The into_inner() call extracts data from a NodeValue, which is used to generalize trees
@@ -202,15 +210,15 @@ where
     /// // Add some elements for the holes to appear:
     /// tree.root_mut().make_branch([
     ///     1, 2, 3, 4, 5, 6, 7, 8,
-    /// ]);
+    /// ]).unwrap(); // You can replace this with proper error handling
     /// tree
     ///     .root_mut()
     ///     .nth_child_mut(0)
-    ///     .unwrap() // You can replace this with proper error handling
+    ///     .unwrap() // This too
     ///     .make_branch([
     ///         9, 10, 11, 12, 13, 14, 15, 16,
-    ///     ]);
-    ///
+    ///     ])
+    ///     .unwrap(); // And this
     ///
     /// tree
     ///     .root_mut()
