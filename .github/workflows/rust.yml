@@ -19,12 +19,21 @@ jobs:
         with:
             toolchain: nightly
             override: true
-            components: rustfmt, clippy
+            components: clippy
 
       - name: Run Clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
+        env:
+          RUSTFLAGS: -D warnings
+      
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+        env:
+          RUSTFLAGS: -D warnings
   
   clippy_stable:
     name: Clippy check on stable
@@ -38,10 +47,19 @@ jobs:
         with:
             toolchain: stable
             override: true
-            components: rustfmt, clippy
+            components: clippy
 
       - name: Run Clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
+        env:
+          RUSTFLAGS: -D warnings
+      
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+        env:
+          RUSTFLAGS: -D warnings
 
