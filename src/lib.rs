@@ -118,8 +118,23 @@
     clippy::unsafe_derive_deserialize,
     clippy::unused_self,
     clippy::used_underscore_binding,
+    clippy::clone_on_ref_ptr,
+    clippy::dbg_macro,
+    clippy::decimal_literal_representation,
+    clippy::filetype_is_file,
+    clippy::get_unwrap,
+    clippy::rest_pat_in_fully_bound_structs,
+    clippy::unneeded_field_pattern,
+    clippy::unwrap_used, // Only .expect() allowed
+    clippy::use_debug,
+    clippy::verbose_file_reads,
+    clippy::wrong_pub_self_convention,
 )]
-#![deny(anonymous_parameters, bare_trait_objects)]
+#![deny(
+    anonymous_parameters,
+    bare_trait_objects,
+    clippy::exit,
+)]
 #![allow(clippy::use_self)] // FIXME reenable when it gets fixed
 #![cfg_attr(not(feature = "std"), no_std)]
 // TODO reimplement LinkedList
