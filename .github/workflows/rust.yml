@@ -25,6 +25,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
+          args: --features "union_optimizations doc_cfg"
         env:
           RUSTFLAGS: -D warnings
       
@@ -32,6 +33,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --features "union_optimizations doc_cfg"
         env:
           RUSTFLAGS: -D warnings
   

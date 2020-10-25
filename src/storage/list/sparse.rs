@@ -1,5 +1,5 @@
 use core::{
-    fmt::{self, Formatter, Debug},
+    fmt::Debug,
     ptr,
     mem,
     num::NonZeroUsize,
@@ -617,7 +617,7 @@ impl<T> SlotUnionBased<T> {
 #[cfg(feature = "union_optimizations")]
 impl<T: Debug> Debug for SlotUnionBased<T> {
     #[inline]
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         if self.is_element() {
             let element_ref = unsafe {
                 // SAFETY: we just did a discriminant check
