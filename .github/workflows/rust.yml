@@ -1,4 +1,4 @@
-name: Build
+name: Checks and tests
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  clippy_nightly:
-    name: Clippy check on nightly
+  nightly:
+    name: On nightly
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
@@ -37,14 +37,14 @@ jobs:
         env:
           RUSTFLAGS: -D warnings
   
-  clippy_stable:
-    name: Clippy check on stable
+  stable:
+    name: On stable
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v2
 
-      - name: Install latest nightly
+      - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
             toolchain: stable
