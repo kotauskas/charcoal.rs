@@ -423,7 +423,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         };
         let payload = f(old_payload);
         let self_key = self.raw_key().clone();
-        let children = children.map(
+        let children = children.array_map(
             |value| self.tree.storage.add(
                 unsafe {
                     // SAFETY: key validity of self is implied
@@ -469,7 +469,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             }
             children_keys.clone() // borrow checker got trolled
         };
-        let children_payloads = children_keys.map(|key| {
+        let children_payloads = children_keys.array_map(|key| {
             let node = self.tree.storage.remove(&key);
             match node.value.into_value() {
                 NodeValue::Leaf(val) => val,
