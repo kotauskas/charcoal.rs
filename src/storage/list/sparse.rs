@@ -25,6 +25,66 @@ pub type VecDeque<T> = SparseStorage<T, alloc::collections::VecDeque<Slot<T>>>;
 /// Sparse storage with element type `E` wraps a normal storage which stores `Slot<E>`, which is a tagged union storing either an element or a "hole". Those holes count as regular elements, but trying to get their value produces a panic, since the storage provides `E` as its element type, rather than `Slot<E>`. This behavior does not depend on whether checked or unchecked `get`/`get_mut` methods are used - all of those are guaranteed to panic upon fetching a hole.
 ///
 /// When `remove_and_shiftfix` is called, elements are not actually shifted, but the element is replaced with a hole. If the elements of the storage store indicies towards other elements of the storage, they don't get invalidated.
+///
+/// # Example
+/// **Note:** *this example is aimed at those who intend to use sparse storage to build a data structure, as a demonstration of how it behaves. If you're looking for an example of using an existing tree with sparse storage, see the trees' own documentation pages.*
+/// ```rust
+/// use charcoal::storage::{
+///     ListStorage, // ListStorage trait, for interfacing with the sparse
+///                  // storage's generic list-like storage capabilities
+///     SparseVec, // A sparse storage type definition for Vec
+///     DummyMoveFix, // Utility struct to have elements which can be removed with
+///                   // a move fix but which actually don't react to the hooks at all.
+/// };
+///
+/// // Use the new() method from the Storage trait to create a sparse storage:
+/// let mut storage = SparseVec::<DummyMoveFix<u32>>::new();
+/// // Or, the with_capacity() method to preallocate some space for the elements:
+/// let mut storage = SparseVec::<DummyMoveFix<u32>>::with_capacity(32);
+///
+/// // Let's put some elements in!
+/// storage.add(0.into());
+/// storage.add(1.into());
+/// storage.add(2.into());
+///
+/// // Now that we have some elements, we can remove the one in the
+/// // middle to create a hole, and see what sparse storage is about.
+/// let val = storage.remove_and_shiftfix(1);
+/// assert_eq!(val, 1);
+///
+/// // Let's check the length of the storage:
+/// let len = storage.len();
+/// // It hasn't changed, because the element from the wrapped storage wasn't actually removed...
+/// assert_eq!(len, 3);
+///
+/// // ...but instead dropped and turned into a hole:
+/// let num_holes = storage.num_holes();
+/// assert_eq!(num_holes, 1);
+///
+/// // Let's remove yet another element:
+/// let val = storage.remove_and_shiftfix(2);
+/// assert_eq!(val, 2);
+/// // It's the third element (index 2), because removing the
+/// // previous one did not shift the elements from their indicies.
+///
+/// // The previous hole is still there, and we have a new one:
+/// let num_holes = storage.num_holes();
+/// assert_eq!(num_holes, 2);
+///
+/// // Let's remove the holes from the storage entirely:
+/// storage.defragment();
+/// // We could've called defragment_and_fix, but since we have
+/// // the dummy move fix wrapper, that wouldn't make a difference.
+///
+/// // The holes are gone!
+/// let num_holes = storage.num_holes();
+/// assert_eq!(num_holes, 0);
+/// // We can also use the is_dense() method to check for this:
+/// assert!(storage.is_dense());
+/// // The method is specific to sparse storage and is not a part of the Storage trait.
+/// ```
+// TODO remove the note when refactoring the storage into a separate crate, and fix the crate name
+// to refer to the name of the crate containing the storage facilities instead
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct SparseStorage<E, S>
 where S: ListStorage<Element = Slot<E>>,
@@ -82,7 +142,7 @@ where S: ListStorage<Element = Slot<E>>,
                             // they can't overlap or be invalid
                             ptr::swap_nonoverlapping(element, other_element as *mut _, 1);
                         }
-                        f(self, i, j);
+                        f(self, j, i);
                     }
                 }
             }
@@ -121,7 +181,7 @@ where S: ListStorage<Element = Slot<E>>,
             self.storage.get_unchecked_mut(index)
         };
         element.punch_hole(None).map(move |val| {
-            if let Some(mut hole_info) = self.hole_list {
+            if let Some(hole_info) = &mut self.hole_list {
                 hole_info.0 = /*unsafe*/ {
                     // SAFETY: it's impossible to have more than usize::MAX elements in a Storage
                     let mut raw = hole_info.0.get();
@@ -155,7 +215,7 @@ where S: ListStorage<Element = Slot<E>>,
         })
     }
 }
-static HOLE_PANIC_MSG: &str = " \
+static HOLE_PANIC_MSG: &str = "\
 the element at the specified index was a hole in the sparse storage";
 unsafe impl<E, S> ListStorage for SparseStorage<E, S>
 where
@@ -579,8 +639,13 @@ impl<T: Debug> Debug for SlotUnionBased<T> {
 }
 #[cfg(feature = "union_optimizations")]
 impl<T> Drop for SlotUnionBased<T> {
+    #[inline]
     fn drop(&mut self) {
-        // TODO
+        if self.is_element() {
+            unsafe {
+                ptr::drop_in_place(self.element_mut());
+            }
+        }
     }
 }
 #[cfg(feature = "union_optimizations")]

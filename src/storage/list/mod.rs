@@ -13,7 +13,10 @@ pub use sparse::{
     VecDeque as SparseVecDeque,
 };
 
-use core::num::{NonZeroUsize, NonZeroIsize};
+use core::{
+    num::{NonZeroUsize, NonZeroIsize},
+    cmp::Ordering,
+};
 use super::Storage;
 
 const U_ONE: NonZeroUsize = unsafe { NonZeroUsize::new_unchecked(1) };
@@ -329,5 +332,47 @@ pub trait MoveFix: Sized {
             shifted_from,
             NonZeroIsize::new(shifted_by.get() as isize).expect("unexpected integer overflow"),
         );
+    }
+}
+
+/// Wrapper around a type which implements `MoveFix` by doing nothing when notified.
+///
+/// Annotated with `repr(transparent)`, so an `as` cast to the contained type will extract the value.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct DummyMoveFix<T: ?Sized> (pub T);
+impl<T> DummyMoveFix<T> {
+    /// Extracts the contained value.
+    #[inline(always)]
+    #[allow(clippy::missing_const_for_fn)] // *sigh* destructors
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+}
+/// Dummy implementation, does nothing when notified.
+impl<T> MoveFix for DummyMoveFix<T> {
+    #[inline(always)]
+    unsafe fn fix_shift<S>(_: &mut S, _: usize, _: NonZeroIsize)
+    where S: ListStorage<Element = Self> {}
+    #[inline(always)]
+    unsafe fn fix_move<S>(_: &mut S, _: usize, _: usize)
+    where S: ListStorage<Element = Self> {}
+}
+impl<T> From<T> for DummyMoveFix<T> {
+    #[inline(always)]
+    fn from(op: T) -> Self {
+        DummyMoveFix(op)
+    }
+}
+impl<T: PartialEq + ?Sized> PartialEq<T> for DummyMoveFix<T> {
+    #[inline(always)]
+    fn eq(&self, other: &T) -> bool {
+        &self.0 == other
+    }
+}
+impl<T: PartialOrd + ?Sized> PartialOrd<T> for DummyMoveFix<T> {
+    #[inline(always)]
+    fn partial_cmp(&self, other: &T) -> Option<Ordering> {
+        self.0.partial_cmp(other)
     }
 }
