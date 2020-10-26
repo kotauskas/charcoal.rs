@@ -95,7 +95,7 @@ where
         });
         Self { storage, root }
     }
-    /// Creates an empty binary tree with the specified capacity for the storage.
+    /// Creates a binary tree with the specified capacity for the storage.
     ///
     /// # Panics
     /// The storage may panic if it has fixed capacity and the specified value does not match it.

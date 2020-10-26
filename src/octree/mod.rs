@@ -1,6 +1,6 @@
 //! Trees which allow nodes to have either zero children or exactly **8**, most often used to partition a 3D space by recursively subdividing it into eight octants.
 //!
-//! The [Wikipedia article] on binary trees covers their use cases and specifics in more detail.
+//! The [Wikipedia article] on octrees covers their use cases and specifics in more detail.
 //!
 //! # Example
 //! ```rust
@@ -112,7 +112,7 @@ where
         });
         Self { storage, root }
     }
-    /// Creates an empty octree with the specified capacity for the storage.
+    /// Creates an octree with the specified capacity for the storage.
     ///
     /// # Panics
     /// The storage may panic if it has fixed capacity and the specified value does not match it.
@@ -130,7 +130,7 @@ where
     ///
     /// // Not until we create them ourselves:
     /// tree.root_mut().make_branch([
-    ///     "Foo", "Bar", "Baz", "Spam", "Eggs", "Monty", "Python", "X",
+    ///     "Foo", "Bar", "Baz", "Quux", "Spam", "Eggs", "Monty", "Python",
     /// ]);
     ///
     /// // If the default storage is backed by a dynamic memory allocation,

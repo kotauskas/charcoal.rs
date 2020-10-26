@@ -500,7 +500,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         Ok(children_payloads)
     }
 
-    /// Recursively removes the specified node and all its descendants, using a closure to patch nodes which transition from having one child to having zero children.
+    /// Recursively removes the specified node and all its descendants, using a closure to patch nodes which transition from eight to zero children.
     #[inline(always)]
     pub fn recursively_remove_with(self, f: impl FnMut(B) -> L) -> NodeValue<B, L> {
         algorithms::recursively_remove_with(self.tree, self.key, f)
