@@ -27,6 +27,7 @@ default = [
 
     "binary_tree",
     "octree",
+    "quadtree",
     
     "smallvec",
     "slotmap",
@@ -36,6 +37,7 @@ alloc = []
 
 binary_tree = []
 octree = []
+quadtree = []
 
 union_optimizations = []
 doc_cfg = []
@@ -48,6 +50,7 @@ features = [
 
     "binary_tree",
     "octree",
+    "quadtree",
 
     "smallvec",
     "slotmap",

@@ -163,6 +163,13 @@ pub mod octree;
 #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "octree")))]
 pub use octree::Octree;
 
+#[cfg(feature = "quadtree")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "quadtree")))]
+pub mod quadtree;
+#[cfg(feature = "quadtree")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "quadtree")))]
+pub use quadtree::{Quadtree};
+
 pub mod traversal;
 pub use traversal::{Visitor, VisitorMut, Traversable, TraversableMut};
 
@@ -170,18 +177,34 @@ pub use traversal::{Visitor, VisitorMut, Traversable, TraversableMut};
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::storage::{
-        ListStorage as TreeStorage,
+        Storage as TreeStorage,
         SparseStorage as SparseTreeStorage,
         DefaultStorage as DefaultTreeStorage,
     };
     #[cfg(feature = "binary_tree")]
     #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "binary_tree")))]
     #[doc(no_inline)]
-    pub use crate::binary_tree::BinaryTree;
+    pub use crate::binary_tree::{
+        BinaryTree,
+        NodeRef as BinaryTreeNodeRef,
+        NodeRefMut as BinaryTreeNodeRefMut,
+    };
     #[cfg(feature = "octree")]
     #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "octree")))]
     #[doc(no_inline)]
-    pub use crate::octree::Octree;
+    pub use crate::octree::{
+        Octree,
+        NodeRef as OctreeNodeRef,
+        NodeRefMut as OctreeNodeRefMut,
+    };
+    #[cfg(feature = "quadtree")]
+    #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "quadtree")))]
+    #[doc(no_inline)]
+    pub use crate::quadtree::{
+        Quadtree,
+        NodeRef as QuadtreeNodeRef,
+        NodeRefMut as QuadtreeNodeRefMut,
+    };
 }
 
 pub(crate) mod util;

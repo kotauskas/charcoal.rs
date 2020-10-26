@@ -16,6 +16,40 @@ pub trait ArrayMap<T, U> {
     fn array_map(self, f: impl FnMut(T) -> U) -> Self::Output;
     fn array_map_by_ref(&self, f: impl FnMut(&T) -> U) -> Self::Output;
 }
+impl<T, U> ArrayMap<T, U> for [T; 4] {
+    type Output = [U; 4];
+    #[inline]
+    fn array_map(self, mut f: impl FnMut(T) -> U) -> Self::Output {
+        let [
+            e0,
+            e1,
+            e2,
+            e3,
+        ] = self;
+        [
+            f(e0),
+            f(e1),
+            f(e2),
+            f(e3),
+        ]
+    }
+    #[inline]
+    fn array_map_by_ref(&self, mut f: impl FnMut(&T) -> U) -> Self::Output {
+        let [
+            e0,
+            e1,
+            e2,
+            e3,
+        ] = self;
+        [
+            f(e0),
+            f(e1),
+            f(e2),
+            f(e3),
+
+        ]
+    }
+}
 impl<T, U> ArrayMap<T, U> for [T; 8] {
     type Output = [U; 8];
     #[inline]
