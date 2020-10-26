@@ -546,6 +546,7 @@ impl<T> SlotUnionBased<T> {
     }
     // Uncomment if ever needed
     #[inline(always)]
+    #[allow(clippy::manual_unwrap_or)] // stupid clippy not realizing we're in a const fn
     const fn new_hole(val: Option<usize>) -> Self {
         Self {
             discrim: Self::HOLE_DISCRIM_BIT | ((matches!(val, Some(..)) as u8) << 1),
