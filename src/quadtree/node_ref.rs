@@ -495,8 +495,6 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         algorithms::recursively_remove_with(self.tree, self.key, f)
     }
 
-    // TODO: node addition and recursive removal
-
     #[inline(always)]
     fn node(&self) -> &'_ Node<B, L, K> {
         unsafe {
