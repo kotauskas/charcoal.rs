@@ -1,4 +1,8 @@
-use core::{num::NonZeroIsize, fmt::Debug};
+use core::{
+    num::NonZeroIsize,
+    fmt::Debug,
+    hint,
+};
 use crate::{
     storage::{ListStorage, MoveFix},
     NodeValue,
@@ -66,6 +70,7 @@ where K: Clone + Debug + Eq,
     }
 }
 impl<B, L> MoveFix for Node<B, L, usize> {
+    #[inline]
     unsafe fn fix_shift<S>(storage: &mut S, shifted_from: usize, shifted_by: NonZeroIsize)
     where S: ListStorage<Element = Self>,
     {
@@ -83,27 +88,58 @@ impl<B, L> MoveFix for Node<B, L, usize> {
         }
     }
 
+    #[inline]
     unsafe fn fix_move<S>(storage: &mut S, previous_index: usize, current_index: usize)
     where S: ListStorage<Element = Self>,
     {
-        // SAFETY: index validity is guaranteed for `current_index`.
-        if let Some(parent_index) = storage.get_unchecked_mut(current_index).parent {
-            let parent = storage.get_unchecked_mut(parent_index);
-            match &mut parent.value {
-                NodeData::Branch {
-                    left_child,
-                    right_child,
-                    ..
-                } => {
-                    if *left_child == previous_index {
-                        *left_child = current_index;
-                    } else if *right_child == Some(previous_index) {
-                        *right_child = Some(current_index);
-                    } else {
-                        unreachable!("parent's children don't match the old index");
-                    }
+        match /*unsafe*/ {
+            // SAFETY: index validity is guaranteed for `current_index`.
+            &storage.get_unchecked(current_index).value
+        } {
+            NodeData::Branch { left_child, right_child, .. } => {
+                let (left_child, right_child) = (*left_child, *right_child);
+                let mut fix_child = |child| {
+                    let child = /*unsafe*/ {
+                        // SAFETY: index validity guaranteed for children
+                        storage.get_unchecked_mut(child)
+                    };
+                    child.parent = Some(current_index);
+                };
+                fix_child(left_child);
+                if let Some(right_child) = right_child {
+                    fix_child(right_child);
                 }
-                NodeData::Leaf(..) => unreachable!("unexpected parent leaf node"),
+            },
+            NodeData::Leaf(..) => {},
+        }
+        let parent_index = if let Some(i) = /*unsafe*/ {
+            // SAFETY: index validity is guaranteed for `current_index`.
+            storage.get_unchecked(current_index).parent
+        } {i} else {return};
+        let parent = storage.get_unchecked_mut(parent_index);
+        let (left_child, right_child) = match &mut parent.value {
+            NodeData::Branch {
+                left_child,
+                right_child,
+                ..
+            } => (left_child, right_child),
+            NodeData::Leaf(..) => /*unsafe*/ {
+                if cfg!(debug_assertions) {
+                    unreachable!("unexpected parent leaf node");
+                }
+                hint::unreachable_unchecked()
+            },
+        };
+        if *left_child == previous_index {
+            *left_child = current_index;
+        } else if *right_child == Some(previous_index) {
+            *right_child = Some(current_index);
+        } else {
+            /*unsafe*/ {
+                if cfg!(debug_assertions) {
+                    unreachable!("parent's children don't match the old index");
+                }
+                hint::unreachable_unchecked()
             }
         }
     }
