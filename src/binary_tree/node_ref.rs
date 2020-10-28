@@ -269,7 +269,7 @@ where
     }
     /// Returns a reference to the parent node of the pointee, or `None` if it's the root node.
     #[inline]
-    pub fn parent(&'a self) -> Option<NodeRef<'a, B, L, K, S>> {
+    pub fn parent(&'_ self) -> Option<NodeRef<'_, B, L, K, S>> {
         self.node().parent.as_ref().map(|x| unsafe {
             // SAFETY: nodes can never have nonexistent parents
             NodeRef::new_raw_unchecked(self.tree, x.clone())
@@ -277,7 +277,7 @@ where
     }
     /// Returns a *mutable* reference to the parent node of the pointee, or `None` if it's the root node.
     #[inline]
-    pub fn parent_mut(&'a mut self) -> Option<Self> {
+    pub fn parent_mut(&'_ mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         let key = self.node().parent.as_ref().cloned();
         key.map(move |x| unsafe {
             // SAFETY: as above
@@ -322,11 +322,11 @@ where
         self.node_mut().value.as_mut().into_value()
     }
     /// Returns a reference to the left child, or `None` if the node is a leaf node.
-    pub fn left_child(&'a self) -> Option<NodeRef<'a, B, L, K, S>> {
+    pub fn left_child(&'_ self) -> Option<NodeRef<'_, B, L, K, S>> {
         NodeRef::from(self).left_child()
     }
     /// Returns a *mutable* reference to the left child, or `None` if the node is a leaf node.
-    pub fn left_child_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
+    pub fn left_child_mut(&'_ mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         match &self.node().value {
             NodeData::Branch { left_child, .. } => Some(left_child.clone()),
             NodeData::Leaf(..) => None,
@@ -344,11 +344,11 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         })
     }
     /// Returns a reference to the right child, or `None` if the node is a leaf node.
-    pub fn right_child(&'a self) -> Option<NodeRef<'a, B, L, K, S>> {
+    pub fn right_child(&'_ self) -> Option<NodeRef<'_, B, L, K, S>> {
         NodeRef::from(self).right_child()
     }
     /// Returns a *mutable* reference to the right child, or `None` if the node is a leaf node.
-    pub fn right_child_mut(&'a mut self) -> Option<Self> {
+    pub fn right_child_mut(&'_ mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         match &self.node().value {
             NodeData::Branch { right_child, .. } => right_child.clone(),
             NodeData::Leaf(..) => None,
