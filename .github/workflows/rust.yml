@@ -7,6 +7,35 @@ on:
     branches: [ master ]
 
 jobs:
+  stable:
+    name: On stable
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Install Rust 1.46
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: "1.46"
+            profile: minimal
+            override: true
+            components: clippy
+
+      - name: Run Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+        env:
+          RUSTFLAGS: -D warnings
+      
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+        env:
+          RUSTFLAGS: -D warnings
+  
   nightly:
     name: On nightly
     runs-on: ubuntu-latest
@@ -37,33 +66,3 @@ jobs:
           args: --features "union_optimizations doc_cfg"
         env:
           RUSTFLAGS: -D warnings
-  
-  stable:
-    name: On stable
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v2
-
-      - name: Install latest stable
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: stable
-            profile: minimal
-            override: true
-            components: clippy
-
-      - name: Run Clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-        env:
-          RUSTFLAGS: -D warnings
-      
-      - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-        env:
-          RUSTFLAGS: -D warnings
-
