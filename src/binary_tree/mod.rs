@@ -333,25 +333,25 @@ where
             .into_value()
     }
     #[inline(always)]
-    fn try_remove_leaf_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_leaf<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<Self::Leaf, TryRemoveLeafError> {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
-            .try_remove_leaf_with(f)
+            .try_remove_leaf_with(branch_to_leaf)
     }
     #[inline(always)]
     #[allow(clippy::type_complexity)]
-    fn try_remove_branch_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError> {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
-            .try_remove_branch_with(f)
+            .try_remove_branch_with(branch_to_leaf)
             .map(|x| {
                 let mut children = ArrayVec::new();
                 children.push(x.1);
@@ -363,14 +363,14 @@ where
     }
     #[inline(always)]
     #[allow(clippy::type_complexity)]
-    fn try_remove_children_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_children<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<Self::PackedChildren, TryRemoveChildrenError> {
         NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
-            .try_remove_children_with(f)
+            .try_remove_children_with(branch_to_leaf)
             .map(|x| {
                 let mut children = ArrayVec::new();
                 children.push(x.0);

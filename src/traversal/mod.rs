@@ -225,26 +225,26 @@ pub trait TraversableMut: Traversable {
     ///
     /// # Panics
     /// Required to panic if cursor value is invalid.
-    fn try_remove_leaf_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_leaf<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<Self::Leaf, TryRemoveLeafError>;
     /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, the value for which is provided by the specified closure (the previous value is passed into the closure).
     ///
     /// # Errors
     /// Will fail in the following scenarios:
-    /// - The node was a leaf node. The `try_remove_leaf`/`try_remove_leaf_with` methods exist for that.
+    /// - The node was a leaf node. The `try_remove_leaf_with` method exists for that.
     /// - The node was the root node, which can never be removed.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
     ///
     /// # Panics
     /// Required to panic if cursor value is invalid.
     #[allow(clippy::type_complexity)] // I disagree
-    fn try_remove_branch_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError>;
     /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, the value for which is provided by the specified closure.
     ///
@@ -256,10 +256,10 @@ pub trait TraversableMut: Traversable {
     /// # Panics
     /// Required to panic if cursor value is invalid.
     #[allow(clippy::type_complexity)] // same here
-    fn try_remove_children_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_children<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<Self::PackedChildren, TryRemoveChildrenError>;
 
     /// Performs one step of the mutating visitor from the specified cursor, returning either the cursor for the next step or the final result of the visitor if it ended.
@@ -692,29 +692,29 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
         (*self).value_mut_of(cursor)
     }
     #[inline(always)]
-    fn try_remove_leaf_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_leaf<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<Self::Leaf, TryRemoveLeafError> {
-        (*self).try_remove_leaf_with(cursor, f)
+        (*self).try_remove_leaf(cursor, branch_to_leaf)
     }
     #[inline(always)]
     #[allow(clippy::type_complexity)]
-    fn try_remove_branch_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError> {
-        (*self).try_remove_branch_with(cursor, f)
+        (*self).try_remove_branch(cursor, branch_to_leaf)
     }
     #[inline(always)]
     #[allow(clippy::type_complexity)]
-    fn try_remove_children_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_children<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<Self::PackedChildren, TryRemoveChildrenError> {
-        (*self).try_remove_children_with(cursor, f)
+        (*self).try_remove_children(cursor, branch_to_leaf)
     }
 }

@@ -143,7 +143,7 @@ impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> VisitorMut for Recursive
                     target
                 };
                 let result = traversable
-                    .try_remove_branch_with(&cursor, &mut self.conversion)
+                    .try_remove_branch(&cursor, &mut self.conversion)
                     .map_err(|e| match e {
                         TryRemoveBranchError::WasRootNode => {
                             panic!("attempted to remove the root node")
@@ -206,7 +206,7 @@ the removed node was not a root node but its parent node could not be found",
                     }
                     target
                 };
-                let result = traversable.try_remove_children_with(&cursor, &mut self.conversion);
+                let result = traversable.try_remove_children(&cursor, &mut self.conversion);
                 match result {
                     Ok(val) => {
                         let mut direction = VisitorDirection::Parent;
@@ -237,7 +237,7 @@ the node was a branch node but removing it returned TryRemoveChildrenError::WasL
             }
             NodeValue::Leaf(..) if T::CAN_REMOVE_INDIVIDUAL_CHILDREN => {
                 let payload = traversable
-                    .try_remove_leaf_with(&cursor, &mut self.conversion)
+                    .try_remove_leaf(&cursor, &mut self.conversion)
                     .unwrap_or_else(|e| match e {
                         TryRemoveLeafError::WasRootNode => {
                             panic!("attempted to remove the root node")

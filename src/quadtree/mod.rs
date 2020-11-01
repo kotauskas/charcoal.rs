@@ -361,31 +361,31 @@ where
             .into_value()
     }
     #[inline(always)]
-    fn try_remove_leaf_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_leaf<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         _cursor: &Self::Cursor,
-        _f: F,
+        _branch_to_leaf: BtL,
     ) -> Result<Self::Leaf, TryRemoveLeafError> {
         Err(TryRemoveLeafError::CannotRemoveIndividualChildren)
     }
     #[inline(always)]
-    fn try_remove_branch_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         _cursor: &Self::Cursor,
-        _f: F,
+        _branch_to_leaf: BtL,
     ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError> {
         Err(TryRemoveBranchError::CannotRemoveIndividualChildren)
     }
     #[inline]
     #[track_caller]
-    fn try_remove_children_with<F: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_children<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
-        f: F,
+        branch_to_leaf: BtL,
     ) -> Result<Self::PackedChildren, TryRemoveChildrenError> {
         let mut node_ref = NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
-        node_ref.try_remove_children_with(f).map(Into::into)
+        node_ref.try_remove_children_with(branch_to_leaf).map(Into::into)
     }
 }
 
