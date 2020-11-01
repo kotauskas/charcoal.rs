@@ -18,6 +18,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
             toolchain: nightly
+            profile: minimal
             override: true
             components: clippy
 
@@ -48,6 +49,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
             toolchain: stable
+            profile: minimal
             override: true
             components: clippy
 
