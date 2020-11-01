@@ -163,6 +163,12 @@ debug key check failed: tried to reference key {:?} which is not present in the 
 
     #[inline(always)]
     fn node(&self) -> &'a Node<B, L, K> {
+        debug_assert!(
+            self.tree.storage.contains_key(&self.key),
+            "\
+debug key check failed: tried to reference key {:?} which is not present in the storage",
+            &self.key,
+        );
         unsafe {
             // SAFETY: all existing NodeRefs are guaranteed to not be dangling
             self.tree.storage.get_unchecked(&self.key)
@@ -497,6 +503,12 @@ debug key check failed: tried to reference key {:?} which is not present in the 
 
     #[inline(always)]
     fn node(&self) -> &'_ Node<B, L, K> {
+        debug_assert!(
+            self.tree.storage.contains_key(&self.key),
+            "\
+debug key check failed: tried to reference key {:?} which is not present in the storage",
+            &self.key,
+        );
         unsafe {
             // SAFETY: all existing NodeRefMuts are guaranteed to not be dangling
             self.tree.storage.get_unchecked(&self.key)
@@ -504,6 +516,12 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     }
     #[inline(always)]
     fn node_mut(&mut self) -> &'_ mut Node<B, L, K> {
+        debug_assert!(
+            self.tree.storage.contains_key(&self.key),
+            "\
+debug key check failed: tried to reference key {:?} which is not present in the storage",
+            &self.key,
+        );
         unsafe {
             // SAFETY: as above
             self.tree.storage.get_unchecked_mut(&self.key)
