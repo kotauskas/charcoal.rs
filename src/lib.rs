@@ -209,10 +209,7 @@ pub mod prelude {
 
 pub(crate) mod util;
 
-use core::{
-    fmt::{self, Formatter, Display, Debug},
-    borrow::{Borrow, BorrowMut},
-};
+use core::fmt::{self, Formatter, Display, Debug};
 
 /// The payload of a node of a tree.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -294,7 +291,7 @@ pub enum TryRemoveLeafError {
 impl Display for TryRemoveLeafError {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
+        f.pad(match self {
             Self::WasRootNode => "cannot remove the root node of a tree",
             Self::WasBranchNode => "cannot remove branch nodes without recursion",
             Self::CannotRemoveIndividualChildren => {
@@ -322,13 +319,13 @@ pub enum TryRemoveBranchError {
 impl Display for TryRemoveBranchError {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
+        f.pad(match self {
             Self::WasRootNode => "cannot remove the root node of a tree",
             Self::WasLeafNode => "expected a branch node, found leaf",
             Self::HadBranchChild(index) => {
                 #[cfg(feature = "alloc")]
                 {
-                    return f.write_str(&format!(
+                    return f.pad(&format!(
                         "\
 node had a branch child (index {}), which cannot be removed without recursion",
                         index,
@@ -361,12 +358,12 @@ pub enum TryRemoveChildrenError {
 impl Display for TryRemoveChildrenError {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
+        f.pad(match self {
             Self::WasLeafNode => "expected a branch node, found leaf",
             Self::HadBranchChild(index) => {
                 #[cfg(feature = "alloc")]
                 {
-                    return f.write_str(&format!(
+                    return f.pad(&format!(
                         "\
 node had a branch child (index {}), which cannot be removed without recursion",
                         index,
@@ -404,7 +401,7 @@ where
 {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("the node already was a branch")
+        f.pad("the node already was a branch")
     }
 }
 #[cfg(feature = "std")]

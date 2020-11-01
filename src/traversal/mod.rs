@@ -346,7 +346,7 @@ impl<C: Clone + Debug + Eq> CursorDirectionError<C> {
 impl<C: Clone + Debug + Eq> Display for CursorDirectionError<C> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("cannot move cursor in the specified direction")
+        f.pad("cannot move cursor in the specified direction")
     }
 }
 #[cfg(feature = "std")]

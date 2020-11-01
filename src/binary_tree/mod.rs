@@ -427,7 +427,7 @@ impl<L> MakeFullBranchError<L> {
 impl<L> Display for MakeFullBranchError<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(
+        f.pad(
             match self {
                 Self::WasLeafNode {..} => "the node was a leaf, not a partial branch",
                 Self::WasFullBranch {..} => "the node already was a full branch",
