@@ -202,10 +202,7 @@ pub trait TraversableMut: Traversable {
     /// Whether the traversable allows removing individual children. This is `true` for trees which have a variable number of children for branches and `false` which don't.
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool;
     /// A container for the leaf children of a branch node.
-    type PackedChildren:
-          Borrow<[Self::Leaf]>
-        + BorrowMut<[Self::Leaf]>
-        + IntoIterator<Item = Self::Leaf>;
+    type PackedChildren: IntoIterator<Item = Self::Leaf>;
 
     /// Returns a *mutable* by-reference `NodeValue` of the node at the specified cursor, allowing modifications.
     ///

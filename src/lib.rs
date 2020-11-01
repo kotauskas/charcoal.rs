@@ -385,19 +385,13 @@ impl std::error::Error for TryRemoveChildrenError {}
 /// The error type returned by methods on trees which convert leaf nodes into branch nodes, which occurs when the node which was attempted to be converted already is a branch node.
 #[derive(Copy, Clone, Debug)]
 pub struct MakeBranchError<L, P>
-where
-    P: Borrow<[L]>
-     + BorrowMut<[L]>
-     + IntoIterator<Item = L>
+where P: IntoIterator<Item = L>
 {
     /// The packed children which were passed to the function and were deemed useless because the call failed, provided here so that they don't get dropped if they could instead be reused in the event of a failure.
     pub packed_children: P,
 }
 impl<L, P> Display for MakeBranchError<L, P>
-where
-    P: Borrow<[L]>
-     + BorrowMut<[L]>
-     + IntoIterator<Item = L>
+where P: IntoIterator<Item = L>
 {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -409,8 +403,5 @@ where
 impl<L, P> std::error::Error for MakeBranchError<L, P>
 where
     L: Debug,
-    P: Borrow<[L]>
-     + BorrowMut<[L]>
-     + IntoIterator<Item = L>
-     + Debug
+    P: IntoIterator<Item = L> + Debug,
 {}
