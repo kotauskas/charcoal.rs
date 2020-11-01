@@ -27,14 +27,17 @@ jobs:
         with:
           command: clippy
         env:
-          RUSTFLAGS: -D warnings
+          # Clippy on 1.46 doesn't have some lints from the latest nightly that we use, so we
+          # disable warning about that altogether, since we still test for those on the nightly.
+          RUSTFLAGS: -D warnings -A clippy::unknown_clippy_lints
       
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
         env:
-          RUSTFLAGS: -D warnings
+          # Same here.
+          RUSTFLAGS: -D warnings -A clippy::unknown_clippy_lints
   
   nightly:
     name: On nightly
