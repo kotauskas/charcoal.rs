@@ -36,8 +36,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          # Same here.
-          args: "-- -A clippy::unknown_clippy_lints"
         env:
           RUSTFLAGS: -D warnings
   
