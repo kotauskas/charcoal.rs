@@ -17,7 +17,7 @@ jobs:
       - name: Install Rust 1.46
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: "1.46"
+            toolchain: "1.46.0"
             profile: minimal
             override: true
             components: clippy
