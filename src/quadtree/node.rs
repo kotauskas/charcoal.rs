@@ -1,10 +1,10 @@
 use core::{
     num::NonZeroIsize,
     fmt::Debug,
-    hint,
 };
 use crate::{
     storage::{ListStorage, MoveFix},
+    util::unreachable_debugchecked,
     NodeValue,
 };
 
@@ -107,10 +107,7 @@ impl<B, L> MoveFix for Node<B, L, usize> {
         let children = match &mut parent.value {
             NodeData::Branch { children, .. } => {children},
             NodeData::Leaf(..) => /*unsafe*/ {
-                if cfg!(debug_assertions) {
-                    unreachable!("unexpected parent leaf node")
-                }
-                hint::unreachable_unchecked()
+                unreachable_debugchecked("parent nodes cannot be leaves")
             },
         };
         for child in children {
@@ -119,7 +116,11 @@ impl<B, L> MoveFix for Node<B, L, usize> {
                 return;
             }
         }
-        unreachable!("parent's children don't match the old index");
+        unsafe {
+            // SAFETY: this mismatch is assumed to never happen as a guarantee
+            // of key validity
+            unreachable_debugchecked("failed to find node in parent's child list")
+        }
     }
 }
 

@@ -6,11 +6,12 @@ use core::{
     convert,    // identity
 };
 use crate::{
+    storage::{Storage, DefaultStorage},
+    util::unreachable_debugchecked,
     TryRemoveLeafError,
     TryRemoveBranchError,
     TryRemoveChildrenError,
     MakeBranchError,
-    storage::{Storage, DefaultStorage},
     traversal::algorithms,
     NodeValue,
 };
@@ -522,10 +523,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             unsafe {
                 // SAFETY: a node cannot have a parent which does not list it as one
                 // of its children
-                if cfg!(debug_assertions) {
-                    panic!("failed to identify whether the node is the left or right child");
-                }
-                hint::unreachable_unchecked()
+                unreachable_debugchecked(
+                    "failed to identify whether the node is the left or right child"
+                )
             }
         }
         let key = self.key.clone();
@@ -612,10 +612,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             unsafe {
                 // SAFETY: a node cannot have a parent which does not list it as one
                 // of its children
-                if cfg!(debug_assertions) {
-                    panic!("failed to identify whether the node is the left or right child");
-                }
-                hint::unreachable_unchecked()
+                unreachable_debugchecked(
+                    "failed to identify whether the node is the left or right child"
+                )
             }
         }
         let key = self.key.clone();

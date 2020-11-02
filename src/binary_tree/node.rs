@@ -1,10 +1,10 @@
 use core::{
     num::NonZeroIsize,
     fmt::Debug,
-    hint,
 };
 use crate::{
     storage::{ListStorage, MoveFix},
+    util::unreachable_debugchecked,
     NodeValue,
 };
 
@@ -124,10 +124,7 @@ impl<B, L> MoveFix for Node<B, L, usize> {
                 ..
             } => (left_child, right_child),
             NodeData::Leaf(..) => /*unsafe*/ {
-                if cfg!(debug_assertions) {
-                    unreachable!("unexpected parent leaf node");
-                }
-                hint::unreachable_unchecked()
+                unreachable_debugchecked("parent nodes cannot be leaves")
             },
         };
         if *left_child == previous_index {
@@ -136,10 +133,9 @@ impl<B, L> MoveFix for Node<B, L, usize> {
             *right_child = Some(current_index);
         } else {
             /*unsafe*/ {
-                if cfg!(debug_assertions) {
-                    unreachable!("parent's children don't match the old index");
-                }
-                hint::unreachable_unchecked()
+                unreachable_debugchecked(
+                    "failed to identify whether the node is the left or right child"
+                )
             }
         }
     }

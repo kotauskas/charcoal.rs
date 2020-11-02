@@ -1,3 +1,5 @@
+use core::hint;
+
 /*
 const INLINE_STACK_SIZE: usize = 128;
 
@@ -97,5 +99,14 @@ impl<T, U> ArrayMap<T, U> for [T; 8] {
             f(e6),
             f(e7),
         ]
+    }
+}
+
+#[inline]
+pub unsafe fn unreachable_debugchecked(msg: &str) -> ! {
+    if cfg!(debug_assertions) {
+        unreachable!(msg)
+    } else {
+        hint::unreachable_unchecked()
     }
 }
