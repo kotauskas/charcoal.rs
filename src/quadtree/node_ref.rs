@@ -102,10 +102,9 @@ where
     /// Returns references to the children, or `None` if the node is a leaf node.
     #[inline]
     pub fn children(&self) -> Option<[Self; 4]> {
-        match &self.node().value {
-            NodeData::Branch { children, .. } => Some(children),
-            NodeData::Leaf(..) => None,
-        }
+        if let NodeData::Branch { children, .. } = &self.node().value {
+            Some(children)
+        } else {None}
         .map(|children| unsafe {
             for c in children {
                 debug_assert!(
@@ -142,10 +141,10 @@ quadtrees have either 0 or 4 children, at indicies \
 from 0 to 3, but child at index {} was requested",
             n,
         );
-        match &self.node().value {
-            NodeData::Branch { children, .. } => Some(children),
-            NodeData::Leaf(_) => None,
-        }.map(|children| unsafe {
+        if let NodeData::Branch { children, .. } = &self.node().value {
+            Some(children)
+        } else {None}
+        .map(|children| unsafe {
             // SAFETY: the beginning of the function checks n
             let child = children.get_unchecked(n as usize);
 
@@ -304,10 +303,9 @@ where
     /// Returns references to the children, or `None` if the node is a leaf node.
     #[inline]
     pub fn children(&self) -> Option<[NodeRef<'_, B, L, K, S>; 4]> {
-        match &self.node().value {
-            NodeData::Branch { children, .. } => Some(children),
-            NodeData::Leaf(..) => None,
-        }
+        if let NodeData::Branch { children, .. } = &self.node().value {
+            Some(children)
+        } else {None}
         .map(|children| unsafe {
             for c in children {
                 debug_assert!(
@@ -344,10 +342,10 @@ quadtrees have either 0 or 4 children, at indicies \
 from 0 to 3, but child at index {} was requested",
             n,
         );
-        match &self.node().value {
-            NodeData::Branch { children, .. } => Some(children),
-            NodeData::Leaf(_) => None,
-        }.map(|children| unsafe {
+        if let NodeData::Branch { children, .. } = &self.node().value {
+            Some(children)
+        } else {None}
+        .map(|children| unsafe {
             // SAFETY: the beginning of the function checks n
             let child = children.get_unchecked(n as usize);
 
@@ -375,10 +373,9 @@ quadtrees have either 0 or 4 children, at indicies \
 from 0 to 3, but child at index {} was requested",
             n,
         );
-        let children = match &self.node().value {
-            NodeData::Branch { children, .. } => Some(children),
-            NodeData::Leaf(_) => None,
-        }.cloned();
+        let children = if let NodeData::Branch { children, .. } = &self.node().value {
+            Some(children)
+        } else {None}.cloned();
         children.map(move |children| unsafe {
             // SAFETY: the beginning of the function checks n
             let child = children.get_unchecked(n as usize);
@@ -404,13 +401,12 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         children: [L; 4],
         f: impl FnOnce(L) -> B,
     ) -> Result<(), MakeBranchError<L, PackedChildren<L>>> {
-        let old_payload_ref = match &self.node().value {
-            NodeData::Leaf(val) => val,
-            NodeData::Branch {..} => {
-                return Err(
-                    MakeBranchError {packed_children: children.into()}
-                )
-            }
+        let old_payload_ref = if let NodeData::Leaf(val) = &self.node().value {
+            val
+        } else {
+            return Err(
+                MakeBranchError {packed_children: children.into()}
+            )
         };
         let old_payload = unsafe {
             // SAFETY: both pointer validity and overwriting are upheld
@@ -448,10 +444,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         f: impl FnOnce(B) -> L,
     ) -> Result<[L; 4], TryRemoveChildrenError> {
         let children_keys = {
-            let children_keys = match &self.node().value {
-                NodeData::Branch { children, .. } => Some(children),
-                NodeData::Leaf(..) => None,
-            }.ok_or(TryRemoveChildrenError::WasLeafNode)?;
+            let children_keys = if let NodeData::Branch { children, .. } = &self.node().value {
+                Some(children)
+            } else {None}.ok_or(TryRemoveChildrenError::WasLeafNode)?;
             for (c, i) in children_keys.iter().zip(0_u32..) {
                 let child_ref = unsafe {
                     // SAFETY: key validity is assumed, since invalid ones cannot possibly be stored
@@ -474,12 +469,13 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 },
             }
         });
-        let old_payload_ref = match &self.node().value {
-            NodeData::Branch { payload, .. } => payload,
-            NodeData::Leaf(..) => unsafe {
+        let old_payload_ref = if let NodeData::Branch { payload, .. } = &self.node().value {
+            payload
+        } else {
+            unsafe {
                 // SAFETY: we checked for a leaf node in the beginning
                 hint::unreachable_unchecked()
-            },
+            }
         };
         let old_payload = unsafe {
             // SAFETY: we're overwriting the value later, and not using an invalid pointer
