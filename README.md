@@ -36,7 +36,8 @@ By default, all trees use a technique called "sparse storage" to significantly s
 - As elements get removed, they will leave holes behind themselves. Those are usually cleaned up automatically as new elements are inserted, **but if you need to clean up all at once, you can use `defragment`.**
 
 ## Feature flags
-- `std` (**enabled by default**) - enables the full standard library, disabling `no_std` for the crate. Currently, this only adds [`Error`] trait implementations for some types.
+- `std` (**enabled by default**) — enables the full standard library, disabling `no_std` for the crate. Currently, this only adds [`Error`] trait implementations for some types.
+- `unwind_safety` (**enabled by default**) — **Must be enabled when using the unwinding panic implementation, otherwise using methods which accept closures is undefined behavior.** Requires `std`. Not a concern in `no_std` builds, since those do not have a panicking runtime by default.
 - `alloc` (**enabled by default**) — adds `ListStorage` trait implementations for standard library containers, except for `LinkedList`, which is temporarily unsupported. *This does not require standard library support and will only panic at runtime in `no_std` environments without an allocator.*
 - `smallvec` (**enabled by default**) — adds a `ListStorage` trait implementation for [`SmallVec`].
 - `slotmap` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].

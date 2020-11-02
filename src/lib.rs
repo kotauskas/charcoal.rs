@@ -30,7 +30,8 @@
 //! - As elements get removed, they will leave holes behind themselves. Those are usually cleaned up automatically as new elements are inserted, **but if you need to clean up all at once, you can use `defragment`.**
 //!
 //! # Feature flags
-//! - `std` (**enabled by default**) - enables the full standard library, disabling `no_std` for the crate. Currently, this only adds [`Error`] trait implementations for some types.
+//! - `std` (**enabled by default**) — enables the full standard library, disabling `no_std` for the crate. Currently, this only adds [`Error`] trait implementations for some types.
+//! - `unwind_safety` (**enabled by default**) — **Must be enabled when using the unwinding panic implementation, otherwise using methods which accept closures is undefined behavior.** Requires `std`. Not a concern in `no_std` builds, since those do not have a panicking runtime by default.
 //! - `alloc` (**enabled by default**) — adds `ListStorage` trait implementations for standard library containers, except for `LinkedList`, which is temporarily unsupported. *This does not require standard library support and will only panic at runtime in `no_std` environments without an allocator.*
 //! - `smallvec` (**enabled by default**) — adds a `ListStorage` trait implementation for [`SmallVec`].
 //! - `slotmap` (**enabled by default**) — adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
@@ -133,7 +134,6 @@
 #![deny(
     anonymous_parameters,
     bare_trait_objects,
-    clippy::exit,
 )]
 #![allow(clippy::use_self)] // FIXME reenable when it gets fixed
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -170,6 +170,13 @@ pub mod quadtree;
 #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "quadtree")))]
 pub use quadtree::{Quadtree};
 
+#[cfg(feature = "freeform_tree")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "freeform_tree")))]
+pub mod freeform_tree;
+#[cfg(feature = "freeform_tree")]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "freeform_tree")))]
+pub use freeform_tree::{FreeformTree};
+
 pub mod traversal;
 pub use traversal::{Visitor, VisitorMut, Traversable, TraversableMut};
 
@@ -204,6 +211,14 @@ pub mod prelude {
         Quadtree,
         NodeRef as QuadtreeNodeRef,
         NodeRefMut as QuadtreeNodeRefMut,
+    };
+    #[cfg(feature = "freeform_tree")]
+    #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "freeform_tree")))]
+    #[doc(no_inline)]
+    pub use crate::freeform_tree::{
+        FreeformTree,
+        NodeRef as FreeformTreeNodeRef,
+        NodeRefMut as FreeformTreeNodeRefMut,
     };
 }
 

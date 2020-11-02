@@ -23,6 +23,7 @@ slotmap = {version = "0.4", optional = true}
 [features]
 default = [
     "std",
+    "unwind_safety",
     "alloc",
 
     "binary_tree",
@@ -33,6 +34,7 @@ default = [
     "slotmap",
 ]
 std = ["alloc"]
+unwind_safety = ["std"]
 alloc = []
 
 binary_tree = []
@@ -46,6 +48,7 @@ doc_cfg = []
 [package.metadata.docs.rs]
 features = [
     "std",
+    "unwind_safety",
     "alloc",
 
     "binary_tree",

@@ -7,7 +7,7 @@ use core::{
 };
 use crate::{
     storage::{Storage, DefaultStorage},
-    util::unreachable_debugchecked,
+    util::{unreachable_debugchecked, abort_on_panic},
     TryRemoveLeafError,
     TryRemoveBranchError,
     TryRemoveChildrenError,
@@ -513,7 +513,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     // SAFETY: as above
                     ptr::write(
                         &mut self.tree.storage.get_unchecked_mut(&parent_key).value,
-                        NodeData::Leaf(f(old_payload)),
+                        NodeData::Leaf(
+                            abort_on_panic(|| f(old_payload))
+                        ),
                     );
                 }
             }
@@ -602,7 +604,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     // SAFETY: as above
                     ptr::write(
                         &mut self.tree.storage.get_unchecked_mut(&parent_key).value,
-                        NodeData::Leaf(f(old_payload)),
+                        NodeData::Leaf(
+                            abort_on_panic(|| f(old_payload))
+                        ),
                     );
                 }
             }
@@ -711,7 +715,12 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         };
         unsafe {
             // SAFETY: as above
-            ptr::write(&mut self.node_mut().value, NodeData::Leaf(f(old_payload)));
+            ptr::write(
+                &mut self.node_mut().value,
+                NodeData::Leaf(
+                    abort_on_panic(|| f(old_payload))
+                )
+            );
         }
         Ok((left_child_payload, right_child_payload))
     }

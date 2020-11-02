@@ -116,7 +116,7 @@ impl<B, L> MoveFix for Node<B, L, usize> {
                 return;
             }
         }
-        unsafe {
+        /*unsafe*/ {
             // SAFETY: this mismatch is assumed to never happen as a guarantee
             // of key validity
             unreachable_debugchecked("failed to find node in parent's child list")

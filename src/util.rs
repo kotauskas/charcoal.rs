@@ -110,3 +110,17 @@ pub unsafe fn unreachable_debugchecked(msg: &str) -> ! {
         hint::unreachable_unchecked()
     }
 }
+
+#[inline]
+pub fn abort_on_panic<R>(f: impl FnOnce() -> R) -> R {
+    #[cfg(feature = "unwind_safety")]
+    {
+        std::panic::catch_unwind(
+            std::panic::AssertUnwindSafe(f)
+        ).unwrap_or_else(|_| std::process::exit(101))
+    }
+    #[cfg(not(feature = "unwind_safety"))]
+    {
+        f()
+    }
+}

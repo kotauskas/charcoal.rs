@@ -12,7 +12,7 @@ use crate::{
     TryRemoveChildrenError,
     MakeBranchError,
     traversal::algorithms,
-    util::ArrayMap,
+    util::{ArrayMap, abort_on_panic},
 };
 
 /// A reference to a node in an octree.
@@ -496,7 +496,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             // SAFETY: as above
             ptr::write(
                 &mut self.node_mut().value,
-                NodeData::Leaf( f(old_payload) ),
+                NodeData::Leaf(
+                    abort_on_panic(|| f(old_payload))
+                ),
             );
         }
         Ok(children_payloads)
