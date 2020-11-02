@@ -470,7 +470,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     /// - The node was a branch node, which would require recursion to remove, and this function explicitly does not implement recursive removal.
     /// - The node was the root node, which can never be removed.
     pub fn try_remove_leaf_with(
-        &mut self,
+        self,
         f: impl FnOnce(B) -> L,
     ) -> Result<L, TryRemoveLeafError> {
         if self.is_branch() {
@@ -545,7 +545,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     /// - The node was the root node, which can never be removed.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
     pub fn try_remove_branch_with(
-        &mut self,
+        self,
         f: impl FnOnce(B) -> L,
     ) -> Result<(B, L, Option<L>), TryRemoveBranchError> {
         if let NodeData::Branch { left_child, right_child, .. } = &self.node().value {
@@ -960,7 +960,7 @@ where
     /// - The node was a branch node, which would require recursion to remove, and this function explicitly does not implement recursive removal.
     /// - The node was the root node, which can never be removed.
     #[inline(always)]
-    pub fn try_remove_leaf(&mut self) -> Result<D, TryRemoveLeafError> {
+    pub fn try_remove_leaf(self) -> Result<D, TryRemoveLeafError> {
         self.try_remove_leaf_with(convert::identity)
     }
     /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, keeping its original payload, which is why *this method is only available when the payload for leaf nodes and branch nodes is the same.*
@@ -971,7 +971,7 @@ where
     /// - The node was the root node, which can never be removed.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
     #[inline(always)]
-    pub fn try_remove_branch(&mut self) -> Result<(D, D, Option<D>), TryRemoveBranchError> {
+    pub fn try_remove_branch(self) -> Result<(D, D, Option<D>), TryRemoveBranchError> {
         self.try_remove_branch_with(convert::identity)
     }
     /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, keeping its original payload. Because of that, *this method is only available when the payload for leaf nodes and branch nodes is the same.*
