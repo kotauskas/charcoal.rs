@@ -344,6 +344,43 @@ where
     }
     #[inline(always)]
     #[allow(clippy::type_complexity)]
+    fn try_remove_branch_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
+        &mut self,
+        cursor: &Self::Cursor,
+        branch_to_leaf: BtL,
+        mut collector: C,
+    ) -> Result<Self::Branch, TryRemoveBranchError> {
+        NodeRefMut::new_raw(self, cursor.clone())
+            .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
+            .try_remove_branch_with(branch_to_leaf)
+            .map(|x| {
+                collector(x.1);
+                if let Some(right_child) = x.2 {
+                    collector(right_child);
+                }
+                x.0
+            })
+    }
+    #[inline(always)]
+    #[allow(clippy::type_complexity)]
+    fn try_remove_children_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
+        &mut self,
+        cursor: &Self::Cursor,
+        branch_to_leaf: BtL,
+        mut collector: C,
+    ) -> Result<(), TryRemoveChildrenError> {
+        NodeRefMut::new_raw(self, cursor.clone())
+            .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
+            .try_remove_children_with(branch_to_leaf)
+            .map(|x| {
+                collector(x.0);
+                if let Some(right_child) = x.1 {
+                    collector(right_child);
+                }
+            })
+    }
+    #[inline(always)]
+    #[allow(clippy::type_complexity)]
     fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,

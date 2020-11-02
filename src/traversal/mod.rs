@@ -201,6 +201,10 @@ pub trait Traversable: Sized {
 pub trait TraversableMut: Traversable {
     /// Whether the traversable allows removing individual children. This is `true` for trees which have a variable number of children for branches and `false` which don't.
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool;
+    /// Whether the `try_remove_branch` and `try_remove_children` methods are implemented. If `false`, `PackedChildren` must be an iterator type which never yields elements, like [`Empty`].
+    ///
+    /// [`Empty`]: https://doc.rust-lang.org/std/iter/struct.Empty.html " "
+    const CAN_PACK_CHILDREN: bool = false;
     /// A container for the leaf children of a branch node.
     type PackedChildren: IntoIterator<Item = Self::Leaf>;
 
@@ -227,7 +231,7 @@ pub trait TraversableMut: Traversable {
         cursor: &Self::Cursor,
         branch_to_leaf: BtL,
     ) -> Result<Self::Leaf, TryRemoveLeafError>;
-    /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, the value for which is provided by the specified closure (the previous value is passed into the closure).
+    /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, the value for which is provided by the specified closure (the previous value is passed into the closure). The removed children are put in the specified collector closure in order.
     ///
     /// # Errors
     /// Will fail in the following scenarios:
@@ -238,12 +242,13 @@ pub trait TraversableMut: Traversable {
     /// # Panics
     /// Required to panic if cursor value is invalid.
     #[allow(clippy::type_complexity)] // I disagree
-    fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_branch_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
         &mut self,
         cursor: &Self::Cursor,
         branch_to_leaf: BtL,
-    ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError>;
-    /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, the value for which is provided by the specified closure.
+        collector: C,
+    ) -> Result<Self::Branch, TryRemoveBranchError>;
+    /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, the value for which is provided by the specified closure. The removed children are put in the specified collector closure in order.
     ///
     /// # Errors
     /// Will fail in the following scenarios:
@@ -253,11 +258,56 @@ pub trait TraversableMut: Traversable {
     /// # Panics
     /// Required to panic if cursor value is invalid.
     #[allow(clippy::type_complexity)] // same here
-    fn try_remove_children<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
+    fn try_remove_children_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
         &mut self,
         cursor: &Self::Cursor,
         branch_to_leaf: BtL,
-    ) -> Result<Self::PackedChildren, TryRemoveChildrenError>;
+        collector: C,
+    ) -> Result<(), TryRemoveChildrenError>;
+
+    /// Attempts to remove a branch node without using recursion. If its parent only had one child, it's replaced with a leaf node, the value for which is provided by the specified closure (the previous value is passed into the closure).
+    ///
+    /// By default, this method is [`unimplemented!`]. In such a case, `try_remove_branch_into` can be used instead. If `CAN_PACK_CHILDREN` is `true`, then it is a logic error to leave it in that state, and the implementor should instead write a proper implementation of this method.
+    ///
+    /// # Errors
+    /// Will fail in the following scenarios:
+    /// - The node was a leaf node. The `try_remove_leaf_with` method exists for that.
+    /// - The node was the root node, which can never be removed.
+    /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
+    ///
+    /// # Panics
+    /// Required to panic if cursor value is invalid.
+    ///
+    /// [`unimplemented!`]: https://doc.rust-lang.org/std/macro.unimplemented.html " "
+    #[allow(clippy::type_complexity)] // I disagree
+    fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
+        &mut self,
+        _cursor: &Self::Cursor,
+        _branch_to_leaf: BtL,
+    ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError> {
+        unimplemented!("packing children is not supported by this traversable")
+    }
+    /// Attempts to remove a branch node's children without using recursion, replacing it with a leaf node, the value for which is provided by the specified closure.
+    ///
+    /// By default, this method is [`unimplemented!`]. In such a case, `try_remove_branch_into` can be used instead. If `CAN_PACK_CHILDREN` is `true`, then it is a logic error to leave it in that state, and the implementor should instead write a proper implementation of this method.
+    ///
+    /// # Errors
+    /// Will fail in the following scenarios:
+    /// - The node was a leaf node, which cannot have children by definition.
+    /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
+    ///
+    /// # Panics
+    /// Required to panic if cursor value is invalid.
+    ///
+    /// [`unimplemented!`]: https://doc.rust-lang.org/std/macro.unimplemented.html " "
+    #[allow(clippy::type_complexity)] // same here
+    fn try_remove_children<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
+        &mut self,
+        _cursor: &Self::Cursor,
+        _branch_to_leaf: BtL,
+    ) -> Result<Self::PackedChildren, TryRemoveChildrenError> {
+        unimplemented!("packing children is not supported by this traversable")
+    }
 
     /// Performs one step of the mutating visitor from the specified cursor, returning either the cursor for the next step or the final result of the visitor if it ended.
     ///
@@ -680,6 +730,7 @@ impl<T: Traversable> Traversable for &mut T {
 }
 impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = T::CAN_REMOVE_INDIVIDUAL_CHILDREN;
+    const CAN_PACK_CHILDREN: bool = T::CAN_PACK_CHILDREN;
     type PackedChildren = T::PackedChildren;
     #[inline(always)]
     fn value_mut_of(
@@ -695,6 +746,26 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
         branch_to_leaf: BtL,
     ) -> Result<Self::Leaf, TryRemoveLeafError> {
         (*self).try_remove_leaf(cursor, branch_to_leaf)
+    }
+    #[inline(always)]
+    #[allow(clippy::type_complexity)]
+    fn try_remove_branch_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
+        &mut self,
+        cursor: &Self::Cursor,
+        branch_to_leaf: BtL,
+        collector: C,
+    ) -> Result<Self::Branch, TryRemoveBranchError> {
+        (*self).try_remove_branch_into(cursor, branch_to_leaf, collector)
+    }
+    #[inline(always)]
+    #[allow(clippy::type_complexity)]
+    fn try_remove_children_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
+        &mut self,
+        cursor: &Self::Cursor,
+        branch_to_leaf: BtL,
+        collector: C,
+    ) -> Result<(), TryRemoveChildrenError> {
+        (*self).try_remove_children_into(cursor, branch_to_leaf, collector)
     }
     #[inline(always)]
     #[allow(clippy::type_complexity)]

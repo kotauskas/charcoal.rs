@@ -53,6 +53,7 @@ use core::{
 use crate::{
     storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot},
     traversal::{Traversable, TraversableMut, VisitorDirection, CursorResult, CursorDirectionError},
+    util::ArrayMap,
     NodeValue,
     TryRemoveBranchError,
     TryRemoveLeafError,
@@ -367,6 +368,29 @@ where
         _branch_to_leaf: BtL,
     ) -> Result<Self::Leaf, TryRemoveLeafError> {
         Err(TryRemoveLeafError::CannotRemoveIndividualChildren)
+    }
+    #[inline(always)]
+    fn try_remove_branch_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
+        &mut self,
+        _cursor: &Self::Cursor,
+        _branch_to_leaf: BtL,
+        _collector: C,
+    ) -> Result<Self::Branch, TryRemoveBranchError> {
+        Err(TryRemoveBranchError::CannotRemoveIndividualChildren)
+    }
+    #[inline]
+    #[track_caller]
+    fn try_remove_children_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
+        &mut self,
+        cursor: &Self::Cursor,
+        branch_to_leaf: BtL,
+        mut collector: C,
+    ) -> Result<(), TryRemoveChildrenError> {
+        let mut node_ref = NodeRefMut::new_raw(self, cursor.clone())
+            .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
+        node_ref.try_remove_children_with(branch_to_leaf).map(|x| {
+            x.array_map(|e| collector(e));
+        })
     }
     #[inline(always)]
     fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
