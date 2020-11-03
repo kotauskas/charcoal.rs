@@ -111,6 +111,34 @@ where
     pub fn value(&self) -> NodeValue<&'a B, &'a L> {
         self.node().value.as_ref().into_value()
     }
+    /// Returns `true` if the node is the left child of its parent, `false` if it's the right one and `None` if it's the root node.
+    #[inline]
+    pub fn is_left_child(&self) -> Option<bool> {
+        let parent = self.parent()?;
+        let left_child_key = &parent
+            .left_child()
+            .unwrap_or_else(|| unsafe {
+                unreachable_debugchecked("parent nodes cannot be leaves")
+            })
+            .key;
+        Some(
+            self.key == *left_child_key
+        )
+    }
+    /// Returns `true` if the node is the right child of its parent, `false` if it's the left one and `None` if it's the root node.
+    #[inline]
+    pub fn is_right_child(&self) -> Option<bool> {
+        let parent = self.parent()?;
+        let right_child_key = &parent
+            .right_child()
+            .unwrap_or_else(|| unsafe {
+                unreachable_debugchecked("parent nodes cannot be leaves")
+            })
+            .key;
+        Some(
+            self.key == *right_child_key
+        )
+    }
     /// Returns references to the children, or `None` if the node is a leaf node or it only has one child. To retreive the left child even if the right one is not present, see `left_child`.
     pub fn children(&self) -> Option<(Self, Self)> {
         match &self.node().value {
@@ -326,6 +354,34 @@ where
     pub fn value_mut(&mut self) -> NodeValue<&'_ mut B, &'_ mut L> {
         self.node_mut().value.as_mut().into_value()
     }
+    /// Returns `true` if the node is the left child of its parent, `false` if it's the right one and `None` if it's the root node.
+    #[inline]
+    pub fn is_left_child(&self) -> Option<bool> {
+        let parent = self.parent()?;
+        let left_child_key = &parent
+            .left_child()
+            .unwrap_or_else(|| unsafe {
+                unreachable_debugchecked("parent nodes cannot be leaves")
+            })
+            .key;
+        Some(
+            self.key == *left_child_key
+        )
+    }
+    /// Returns `true` if the node is the right child of its parent, `false` if it's the left one and `None` if it's the root node.
+    #[inline]
+    pub fn is_right_child(&self) -> Option<bool> {
+        let parent = self.parent()?;
+        let right_child_key = &parent
+            .right_child()
+            .unwrap_or_else(|| unsafe {
+                unreachable_debugchecked("parent nodes cannot be leaves")
+            })
+            .key;
+        Some(
+            self.key == *right_child_key
+        )
+    }
     /// Returns a reference to the left child, or `None` if the node is a leaf node.
     pub fn left_child(&self) -> Option<NodeRef<'_, B, L, K, S>> {
         NodeRef::from(self).left_child()
@@ -494,8 +550,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 payload,
             } => (left_child, right_child, payload),
             NodeData::Leaf(..) => unsafe {
-                // SAFETY: cannot have leaf node as parent
-                hint::unreachable_unchecked()
+                unreachable_debugchecked("parent nodes cannot be leaves")
             },
         };
         if &self.key == parent_left_child {
@@ -586,8 +641,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 payload,
             } => (left_child, right_child, payload),
             NodeData::Leaf(..) => unsafe {
-                // SAFETY: cannot have leaf node as parent
-                hint::unreachable_unchecked()
+                unreachable_debugchecked("parent nodes cannot be leaves")
             },
         };
         if &self.key == parent_left_child {
