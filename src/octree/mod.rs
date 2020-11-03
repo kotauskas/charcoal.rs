@@ -52,11 +52,27 @@ use core::{
     fmt::Debug,
     iter::{DoubleEndedIterator, ExactSizeIterator, FusedIterator},
     borrow::{Borrow, BorrowMut},
+    hint,
 };
 use crate::{
-    storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot},
-    traversal::{Traversable, TraversableMut, VisitorDirection, CursorResult, CursorDirectionError},
-    util::ArrayMap,
+    storage::{
+        Storage,
+        ListStorage,
+        DefaultStorage,
+        SparseStorage,
+        SparseStorageSlot,
+    },
+    traversal::{
+        Traversable,
+        TraversableMut,
+        VisitorDirection,
+        CursorResult,
+        CursorDirectionError,
+    },
+    util::{
+        ArrayMap,
+        unreachable_debugchecked,
+    },
     NodeValue,
     TryRemoveBranchError,
     TryRemoveLeafError,
@@ -284,7 +300,22 @@ where
             .expect("the node specified by the cursor does not exist");
         match direction {
             VisitorDirection::Parent => node.parent().ok_or(error).map(NodeRef::into_raw_key),
-            VisitorDirection::NextSibling => todo!(), // TODO
+            VisitorDirection::NextSibling => {
+                node.child_index().map(|child_index| {
+                    let parent = node
+                        .parent()
+                        .unwrap_or_else(|| unsafe {
+                            unreachable_debugchecked("parent nodes cannot be leaves")
+                        });
+                    parent
+                        .nth_child(child_index)
+                        .unwrap_or_else(|| unsafe {
+                            // SAFETY: the previous unreachable_debugchecked checked for this
+                            hint::unreachable_unchecked()
+                        })
+                        .into_raw_key()
+                }).ok_or(error)
+            },
             VisitorDirection::Child(num) => {
                 let num = if num <= 7 {
                     num as u8
@@ -351,6 +382,7 @@ where
     K: Clone + Debug + Eq,
 {
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = false;
+    const CAN_PACK_CHILDREN: bool = true;
     type PackedChildren = PackedChildren<L>;
 
     #[inline]
