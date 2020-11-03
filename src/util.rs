@@ -103,10 +103,16 @@ impl<T, U> ArrayMap<T, U> for [T; 8] {
 }
 
 #[inline]
+#[cfg_attr(debug_assertions, track_caller)]
 pub unsafe fn unreachable_debugchecked(msg: &str) -> ! {
-    if cfg!(debug_assertions) {
-        unreachable!(msg)
-    } else {
+    #[cfg(debug_assertions)]
+    {
+        // Most of those panics are in a tree corrupton context, so we should
+        // just abort the process to prevent unwinders from collecting corrupted data
+        abort_on_panic(|| unreachable!(msg))
+    }
+    #[cfg(not(debug_assertions))]
+    {
         hint::unreachable_unchecked()
     }
 }
