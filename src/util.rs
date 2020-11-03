@@ -1,5 +1,3 @@
-use core::hint;
-
 /*
 const INLINE_STACK_SIZE: usize = 128;
 
@@ -113,7 +111,7 @@ pub unsafe fn unreachable_debugchecked(msg: &str) -> ! {
     }
     #[cfg(not(debug_assertions))]
     {
-        hint::unreachable_unchecked()
+        core::hint::unreachable_unchecked()
     }
 }
 
