@@ -726,8 +726,8 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     }
     /// Recursively removes the specified node and all its descendants, using a closure to patch nodes which transition from having one child to having zero children.
     #[inline(always)]
-    pub fn recursively_remove_with(self, f: impl FnMut(B) -> L) -> NodeValue<B, L> {
-        algorithms::recursively_remove_with(self.tree, self.key, f)
+    pub fn recursively_remove_with(self, branch_to_leaf: impl FnMut(B) -> L) -> NodeValue<B, L> {
+        algorithms::recursively_remove_with(self.tree, self.key, branch_to_leaf)
     }
     /*
     Disabled due to usefulness doubts

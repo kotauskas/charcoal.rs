@@ -410,7 +410,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     pub fn make_branch_with(
         &mut self,
         children: [L; 8],
-        f: impl FnOnce(L) -> B,
+        leaf_to_branch: impl FnOnce(L) -> B,
     ) -> Result<(), MakeBranchError<L, PackedChildren<L>>> {
         let old_payload_ref = if let NodeData::Leaf(val) = &self.node().value {
             val
@@ -423,7 +423,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             // SAFETY: both pointer validity and overwriting are upheld
             ptr::read(old_payload_ref)
         };
-        let payload = f(old_payload);
+        let payload = leaf_to_branch(old_payload);
         let self_key = self.raw_key().clone();
         let children = children.array_map(
             |value| self.tree.storage.add(
@@ -452,7 +452,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     #[inline]
     pub fn try_remove_children_with(
         &mut self,
-        f: impl FnOnce(B) -> L,
+        branch_to_leaf: impl FnOnce(B) -> L,
     ) -> Result<[L; 8], TryRemoveChildrenError> {
         let children_keys = {
             let children_keys = if let NodeData::Branch { children, .. } = &self.node().value {
@@ -497,7 +497,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             ptr::write(
                 &mut self.node_mut().value,
                 NodeData::Leaf(
-                    abort_on_panic(|| f(old_payload))
+                    abort_on_panic(|| branch_to_leaf(old_payload))
                 ),
             );
         }
@@ -506,8 +506,8 @@ debug key check failed: tried to reference key {:?} which is not present in the 
 
     /// Recursively removes the specified node and all its descendants, using a closure to patch nodes which transition from eight to zero children.
     #[inline(always)]
-    pub fn recursively_remove_with(self, f: impl FnMut(B) -> L) -> NodeValue<B, L> {
-        algorithms::recursively_remove_with(self.tree, self.key, f)
+    pub fn recursively_remove_with(self, branch_to_leaf: impl FnMut(B) -> L) -> NodeValue<B, L> {
+        algorithms::recursively_remove_with(self.tree, self.key, branch_to_leaf)
     }
 
     #[inline(always)]

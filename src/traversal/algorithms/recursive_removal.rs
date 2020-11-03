@@ -85,10 +85,10 @@ pub struct RecursiveRemovalWith<T: TraversableMut, F: FnMut(T::Branch) -> T::Lea
 impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> RecursiveRemovalWith<T, F> {
     /// Creates the visitor, removing the node at the specified cursor with the specified conversion closure.
     #[inline(always)]
-    pub fn new(cursor: T::Cursor, f: F) -> Self {
+    pub fn new(cursor: T::Cursor, conversion: F) -> Self {
         Self {
             pivot: cursor,
-            conversion: f,
+            conversion,
         }
     }
 }
