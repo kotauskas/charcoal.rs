@@ -470,6 +470,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     /// Will fail in the following scenarios:
     /// - The node was a branch node, which would require recursion to remove, and this function explicitly does not implement recursive removal.
     /// - The node was the root node, which can never be removed.
+    #[inline]
     pub fn try_remove_leaf_with(
         self,
         f: impl FnOnce(B) -> L,
@@ -546,6 +547,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     /// - The node was a leaf node. The `try_remove_leaf`/`try_remove_leaf_with` methods exist for that.
     /// - The node was the root node, which can never be removed.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
+    #[inline]
     pub fn try_remove_branch_with(
         self,
         f: impl FnOnce(B) -> L,
@@ -658,6 +660,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     /// Will fail in the following scenarios:
     /// - The node was a leaf node, which cannot have children by definition.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
+    #[inline]
     pub fn try_remove_children_with(
         &mut self,
         f: impl FnOnce(B) -> L,

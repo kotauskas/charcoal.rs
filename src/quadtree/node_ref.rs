@@ -396,6 +396,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     ///
     /// # Errors
     /// Will fail if the node is already a branch node. In such a case, the provided values for the children are returned back to the caller.
+    #[inline]
     pub fn make_branch_with(
         &mut self,
         children: [L; 4],
