@@ -24,14 +24,14 @@
 //! let my_numbers = [
 //!     2014, 1987, 1983,
 //! ];
-//! root.make_branch(my_numbers).unwrap();
+//! root.make_branch(my_numbers.iter().copied()).unwrap();
 //!
 //! // Let's return to an immutable reference and look at our tree.
 //! let root = NodeRef::from(root); // Conversion from a mutable to an immutable reference
 //! assert_eq!(root.value().into_inner(), &120);
 //! let children = {
-//!     let children_ref_iter = root.children().unwrap();
-//!     let get_val = |x| {
+//!     let mut children_ref_iter = root.children().unwrap();
+//!     let mut get_val = |x| {
 //!         // Type inference decided to abandon us here
 //!         let x: NodeRef<'_, _, _, _> = children_ref_iter.next().unwrap();
 //!         *x.value().into_inner()
@@ -134,7 +134,7 @@ where
     /// // Not until we create them ourselves:
     /// tree.root_mut().make_branch([
     ///     "Foo", "Bar", "Baz", "Quux",
-    /// ]);
+    /// ].iter().copied());
     ///
     /// // If the default storage is backed by a dynamic memory allocation,
     /// // at most one has happened to this point.
@@ -211,23 +211,23 @@ where
     /// // This is already the default, but for the sake of this example we'll stay explicit.
     ///
     /// // Add some elements for the holes to appear:
-    /// tree.root_mut().make_branch(&[
+    /// tree.root_mut().make_branch([
     ///     1, 2, 3, 4, 5,
-    /// ]).unwrap(); // You can replace this with proper error handling
+    /// ].iter().copied()).unwrap(); // You can replace this with proper error handling
     /// tree
     ///     .root_mut()
-    ///     .nth_child_mut(0)
+    ///     .first_child_mut()
     ///     .unwrap() // This too
-    ///     .make_branch(&[
+    ///     .make_branch([
     ///         6, 7, 8, 9, 10,
-    ///     ])
+    ///     ].iter().copied())
     ///     .unwrap(); // And this
     ///
     /// tree
     ///     .root_mut()
-    ///     .nth_child_mut(0)
+    ///     .first_child_mut()
     ///     .unwrap() // Same as above
-    ///     .try_remove_children()
+    ///     .try_remove_children(drop)
     ///     .unwrap(); // Same here
     ///
     /// // We ended up creating 5 holes:
