@@ -12,7 +12,11 @@ use crate::{
     TryRemoveChildrenError,
     MakeBranchError,
     traversal::algorithms,
-    util::{ArrayMap, abort_on_panic},
+    util::{
+        ArrayMap,
+        abort_on_panic,
+        unreachable_debugchecked,
+    },
 };
 
 /// A reference to a node in an octree.
@@ -98,7 +102,26 @@ where
     pub fn value(&self) -> NodeValue<&'a B, &'a L> {
         self.node().value.as_ref().into_value()
     }
-
+    /// Returns the index of the child among its siblings, or `None` if it's the root node.
+    #[inline]
+    pub fn child_index(&self) -> Option<u8> {
+        let parent = self.parent()?;
+        for (sibling, index) in parent
+            .children()
+            .unwrap_or_else(|| unsafe {
+                unreachable_debugchecked("parent nodes cannot be leaves")
+            })
+            .iter()
+            .zip(0_u8..)
+        {
+            if sibling.key == self.key {
+                return Some(index);
+            }
+        }
+        unsafe {
+            unreachable_debugchecked("failed to find node in parent's child list")
+        }
+    }
     /// Returns references to the children, or `None` if the node is a leaf node.
     #[inline]
     pub fn children(&self) -> Option<[Self; 8]> {
@@ -301,6 +324,26 @@ where
     pub fn value(&self) -> NodeValue<&'_ B, &'_ L> {
         self.node().value.as_ref().into_value()
     }
+    /// Returns the index of the child among its siblings, or `None` if it's the root node.
+    #[inline]
+    pub fn child_index(&self) -> Option<u8> {
+        let parent = self.parent()?;
+        for (sibling, index) in parent
+            .children()
+            .unwrap_or_else(|| unsafe {
+                unreachable_debugchecked("parent nodes cannot be leaves")
+            })
+            .iter()
+            .zip(0_u8..)
+        {
+            if sibling.key == self.key {
+                return Some(index);
+            }
+        }
+        unsafe {
+            unreachable_debugchecked("failed to find node in parent's child list")
+        }
+    }
     /// Returns a *mutable* reference to the data stored in the node.
     #[inline(always)]
     pub fn value_mut(&mut self) -> NodeValue<&'_ mut B, &'_ mut L> {
@@ -321,25 +364,11 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     c,
                 );
             }
-            let [
-                child_0, child_1,
-                child_2, child_3,
-                child_4, child_5,
-                child_6, child_7,
-            ] = children.clone();
-            // There might be a way to make this look nicer.
-            [
+            children.array_map_by_ref(|child| /*unsafe*/ {
                 // SAFETY: child keys are guaranteed to be valid; a key check to make sure that
                 // properly holds is above.
-                NodeRef::new_raw_unchecked(self.tree, child_0),
-                NodeRef::new_raw_unchecked(self.tree, child_1),
-                NodeRef::new_raw_unchecked(self.tree, child_2),
-                NodeRef::new_raw_unchecked(self.tree, child_3),
-                NodeRef::new_raw_unchecked(self.tree, child_4),
-                NodeRef::new_raw_unchecked(self.tree, child_5),
-                NodeRef::new_raw_unchecked(self.tree, child_6),
-                NodeRef::new_raw_unchecked(self.tree, child_7),
-            ]
+                NodeRef::new_raw_unchecked(self.tree, child.clone())
+            })
         })
     }
     /// Returns a reference the `n`-th child, or `None` if the node has no children. Indexing starts from zero, thus the value is in range from 0 to 7.
