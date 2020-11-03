@@ -37,8 +37,20 @@
 
 use core::fmt::{self, Formatter, Debug, Display};
 use crate::{
-    storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot},
-    traversal::{Traversable, TraversableMut, VisitorDirection, CursorDirectionError},
+    storage::{
+        Storage,
+        ListStorage,
+        DefaultStorage,
+        SparseStorage,
+        SparseStorageSlot,
+    },
+    traversal::{
+        Traversable,
+        TraversableMut,
+        VisitorDirection,
+        CursorDirectionError,
+    },
+    util::unreachable_debugchecked,
     NodeValue,
     TryRemoveBranchError,
     TryRemoveLeafError,
@@ -253,7 +265,20 @@ where
             .expect("the node specified by the cursor does not exist");
         match direction {
             VisitorDirection::Parent => node.parent().ok_or(error).map(NodeRef::into_raw_key),
-            VisitorDirection::NextSibling => todo!(), // TODO
+            VisitorDirection::NextSibling => {
+                if node.is_left_child() == Some(true) {
+                    node
+                        .parent()
+                        .unwrap_or_else(|| unsafe {
+                            unreachable_debugchecked("parent nodes cannot be leaves")
+                        })
+                        .right_child()
+                        .map(NodeRef::into_raw_key)
+                        .ok_or(error)
+                }  else {
+                    Err(error)
+                }
+            }
             VisitorDirection::Child(num) => match num {
                 0 => node.left_child().ok_or(error).map(NodeRef::into_raw_key),
                 1 => node.right_child().ok_or(error).map(NodeRef::into_raw_key),
@@ -319,6 +344,7 @@ where
     K: Clone + Debug + Eq,
 {
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = true;
+    const CAN_PACK_CHILDREN: bool = true;
     type PackedChildren = ArrayVec<[Self::Leaf; 2]>;
     #[inline(always)]
     fn value_mut_of(
