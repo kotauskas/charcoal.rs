@@ -365,19 +365,23 @@ where
     #[inline(always)]
     fn try_remove_leaf<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
-        _cursor: &Self::Cursor,
-        _branch_to_leaf: BtL,
+        cursor: &Self::Cursor,
+        branch_to_leaf: BtL,
     ) -> Result<Self::Leaf, TryRemoveLeafError> {
-        todo!()
+        NodeRefMut::new_raw(self, cursor.clone())
+            .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
+            .try_remove_leaf_with(branch_to_leaf)
     }
     #[inline(always)]
     fn try_remove_branch_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
         &mut self,
-        _cursor: &Self::Cursor,
-        _branch_to_leaf: BtL,
-        _collector: C,
+        cursor: &Self::Cursor,
+        branch_to_leaf: BtL,
+        collector: C,
     ) -> Result<Self::Branch, TryRemoveBranchError> {
-        todo!()
+        NodeRefMut::new_raw(self, cursor.clone())
+            .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
+            .try_remove_branch_with(branch_to_leaf, collector)
     }
     #[inline]
     #[track_caller]
