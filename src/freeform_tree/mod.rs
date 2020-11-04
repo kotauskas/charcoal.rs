@@ -1,6 +1,6 @@
 //! Freeform trees, ones which don't impose any restrictions on the number of child nodes that a branch node can have.
 //!
-//! Most other tree types can be losslessly converted to a freeform tree.
+//! Those can be used to build almost any other tree structure with ease, including some that are intentionally not implemented by Charcoal because they are just freeform trees with a specific type of key, such as the [trie].
 //!
 //! # Example
 //! ```rust
@@ -40,6 +40,8 @@
 //! };
 //! assert_eq!(children, my_numbers);
 //! ```
+//!
+//! [trie]: https://en.wikipedia.org/wiki/Trie " "
 
 use core::{
     fmt::{self, Formatter, Debug, Display},
