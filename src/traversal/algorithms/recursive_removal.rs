@@ -142,8 +142,19 @@ impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> VisitorMut for Recursive
                     }
                     target
                 };
+                let mut child_payload = None;
+                let mut current_child_index = 0_usize;
                 let result = traversable
-                    .try_remove_branch(&cursor, &mut self.conversion)
+                    .try_remove_branch_into(
+                        &cursor,
+                        &mut self.conversion,
+                        |c| {
+                            if Some(current_child_index) == target_child_index {
+                                child_payload = Some(c);
+                            }
+                            current_child_index += 1;
+                        },
+                    )
                     .map_err(|e| match e {
                         TryRemoveBranchError::WasRootNode => {
                             panic!("attempted to remove the root node")
@@ -170,20 +181,9 @@ the removed node was not a root node but its parent node could not be found",
                                 .into(),
                         );
                         if cursor == self.pivot {
-                            direction = VisitorDirection::Stop(NodeValue::Branch(val.0));
-                        } else {
-                            let child_payload = target_child_index.and_then(|target_child_index| {
-                                val.1.into_iter().enumerate().find_map(|(i, c)| {
-                                    if i == target_child_index {
-                                        Some(c)
-                                    } else {
-                                        None
-                                    }
-                                })
-                            });
-                            if let Some(child_payload) = child_payload {
-                                direction = VisitorDirection::Stop(NodeValue::Leaf(child_payload));
-                            }
+                            direction = VisitorDirection::Stop(NodeValue::Branch(val));
+                        } else if let Some(child_payload) = child_payload {
+                            direction = VisitorDirection::Stop(NodeValue::Leaf(child_payload));
                         }
                         direction
                     }
@@ -206,24 +206,23 @@ the removed node was not a root node but its parent node could not be found",
                     }
                     target
                 };
-                let result = traversable.try_remove_children(&cursor, &mut self.conversion);
-                match result {
-                    Ok(val) => {
-                        let mut direction = VisitorDirection::Parent;
-                        let child_payload = target_child_index.and_then(|target_child_index| {
-                            val.into_iter().enumerate().find_map(|(i, c)| {
-                                if i == target_child_index {
-                                    Some(c)
-                                } else {
-                                    None
-                                }
-                            })
-                        });
-                        if let Some(child_payload) = child_payload {
-                            direction = VisitorDirection::Stop(NodeValue::Leaf(child_payload));
+                let mut child_payload = None;
+                let mut current_child_index = 0_usize;
+                let result = traversable.try_remove_children_into(
+                    &cursor,
+                    &mut self.conversion,
+                    |c| {
+                        if Some(current_child_index) == target_child_index {
+                            child_payload = Some(c);
                         }
-                        direction
+                        current_child_index += 1;
                     }
+                );
+                match result {
+                    Ok(()) => child_payload.map_or(
+                        VisitorDirection::Parent,
+                        |child_payload| VisitorDirection::Stop(NodeValue::Leaf(child_payload)),
+                    ),
                     Err(e) => match e {
                         TryRemoveChildrenError::WasLeafNode => panic!(
                             "\
