@@ -19,7 +19,7 @@ Charcoal uses [Granite] to handle arena-allocated storage. Several feature flags
 - `smallvec` — forwarded to Granite, adds a `ListStorage` trait implementation for [`SmallVec`].
 - `slab` — forwarded to Granite, adds a `Storage` trait implementation for [`Slab`].
 - `slotmap` — forwarded to Granite, adds `Storage` trait implementations for [`SlotMap`], [`HopSlotMap`] and [`DenseSlotMap`].
-- `union_optimizations` — adds some layout optimizations by using untagged unions, decreasing memory usage in `SparseStorage`. **Requires a nightly compiler** (see [tracking issue for RFC 2514]) and thus is disabled by default.
+- `union_optimizations` — forwarded to Granite, adds some layout optimizations by using untagged unions, decreasing memory usage in `SparseStorage`. **Requires a nightly compiler** (see [tracking issue for RFC 2514]) and thus is disabled by default.
 
 ## Public dependencies
 - `arrayvec` (**required**) — `^0.5`
