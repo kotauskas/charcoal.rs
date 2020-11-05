@@ -1,8 +1,6 @@
 //! Ubiquitous algorithms for trees.
 //!
-//! This includes:
-//! - Recursive removal
-//! - *More to come*
+//! For now, this only includes recursive removal.
 
 mod recursive_removal;
 pub use recursive_removal::*;

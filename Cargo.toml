@@ -17,8 +17,7 @@ keywords = ["tree", "trees", "arena_tree"]
 
 [dependencies]
 arrayvec = {version = "0.5", default_features = false}
-smallvec = {version = "1.4", optional = true}
-slotmap = {version = "0.4", optional = true}
+granite = {version = "1.0", features = ["arrayvec"]}
 
 [features]
 default = [
@@ -30,9 +29,6 @@ default = [
     "octree",
     "quadtree",
     "freeform_tree",
-    
-    "smallvec",
-    "slotmap",
 ]
 std = ["alloc"]
 unwind_safety = ["std"]
@@ -43,9 +39,12 @@ octree = []
 quadtree = []
 freeform_tree = []
 
-union_optimizations = []
+smallvec = ["granite/smallvec"]
+slab = ["granite/slab"]
+slotmap = ["granite/slotmap"]
+
+union_optimizations = ["granite/union_optimizations"]
 doc_cfg = []
-#linked_list_storage = ["alloc"]
 
 [package.metadata.docs.rs]
 features = [
@@ -59,6 +58,7 @@ features = [
     "freeform_tree",
 
     "smallvec",
+    "slab",
     "slotmap",
 
     "union_optimizations",
