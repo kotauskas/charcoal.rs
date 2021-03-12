@@ -55,6 +55,8 @@ where
                     .ok_or(error)
             }
             VisitorDirection::Child(num) => {
+                // False positive, we have a check here
+                #[allow(clippy::clippy::cast_possible_truncation)]
                 let num = if num <= 7 {
                     num as u8
                 } else {
@@ -100,6 +102,8 @@ where
     }
     #[track_caller]
     fn nth_child_of(&self, cursor: &Self::Cursor, child_num: usize) -> Option<Self::Cursor> {
+        // False positive, we have a check here
+        #[allow(clippy::clippy::cast_possible_truncation)]
         if child_num < 8 {
             let node_ref = NodeRef::new_raw(self, cursor.clone())
                 .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));

@@ -44,6 +44,7 @@
 #![warn(
     rust_2018_idioms,
     clippy::cargo,
+    clippy::pedantic,
     clippy::nursery,
     missing_copy_implementations,
     missing_debug_implementations,
@@ -52,69 +53,15 @@
     //missing_doc_code_examples,
     unused_qualifications,
     variant_size_differences,
-    clippy::cast_lossless,
-    clippy::await_holding_lock,
-    clippy::checked_conversions,
-    clippy::copy_iterator,
-    clippy::expl_impl_clone_on_copy,
-    clippy::explicit_iter_loop,
-    clippy::explicit_into_iter_loop,
-    clippy::filter_map,
-    clippy::filter_map_next,
-    clippy::find_map,
-    clippy::map_flatten,
-    clippy::map_unwrap_or,
-    clippy::fn_params_excessive_bools,
-    clippy::implicit_hasher,
-    clippy::implicit_saturating_sub,
-    clippy::inefficient_to_string,
-    clippy::invalid_upcast_comparisons,
-    clippy::items_after_statements,
-    clippy::large_stack_arrays,
-    clippy::let_unit_value,
-    clippy::macro_use_imports,
-    clippy::match_same_arms,
-    clippy::match_wild_err_arm,
-    clippy::match_wildcard_for_single_variants,
-    // sick of this stupid lint, disabling
-    // clippy::module_name_repetitions,
-    clippy::mut_mut,
-    clippy::needless_continue,
-    clippy::needless_pass_by_value,
-    clippy::option_if_let_else,
-    clippy::option_option,
-    clippy::pub_enum_variant_names,
-    clippy::range_plus_one,
-    clippy::range_minus_one,
-    clippy::redundant_closure_for_method_calls,
-    clippy::same_functions_in_if_condition,
-    // also sick of this one, gives too much false positives inherent to its design
-    // clippy::shadow_unrelated,
-    clippy::similar_names,
-    clippy::single_match_else,
-    clippy::string_add_assign,
-    clippy::too_many_lines,
-    clippy::type_repetition_in_bounds,
-    clippy::trivially_copy_pass_by_ref,
-    clippy::unicode_not_nfc,
-    clippy::unnested_or_patterns,
-    clippy::unsafe_derive_deserialize,
-    clippy::unused_self,
-    clippy::used_underscore_binding,
-    clippy::clone_on_ref_ptr,
-    clippy::dbg_macro,
-    clippy::decimal_literal_representation,
-    clippy::filetype_is_file,
-    clippy::get_unwrap,
-    clippy::rest_pat_in_fully_bound_structs,
-    clippy::unneeded_field_pattern,
     clippy::unwrap_used, // Only .expect() allowed
-    clippy::use_debug,
-    clippy::verbose_file_reads,
-    clippy::wrong_pub_self_convention,
 )]
 #![deny(anonymous_parameters, bare_trait_objects)]
-#![allow(clippy::use_self)] // FIXME reenable when it gets fixed
+#![allow(
+    clippy::use_self, // FIXME reenable when it gets fixed
+    clippy::clippy::wildcard_imports, // Worst lint ever
+    clippy::clippy::module_name_repetitions, // Annoying and stupid
+    clippy::shadow_unrelated, // Countless false positives, very annoying
+)]
 #![cfg_attr(not(feature = "std"), no_std)]
 // TODO reimplement LinkedList
 //#![cfg_attr(feature = "linked_list_storage", feature(linked_list_cursors))]

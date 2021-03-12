@@ -112,6 +112,7 @@ pub trait Traversable: Sized {
     ///
     /// # Panics
     /// Required to panic if the current cursor value is invalid, i.e. it's impossible to determine the previously valid cursor value (as opposed to merely invalid directions but valid cursor, which can be recovered from).
+    #[allow(clippy::missing_errors_doc)]
     fn advance_cursor<V>(
         &self,
         cursor: Self::Cursor,
