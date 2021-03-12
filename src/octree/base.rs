@@ -120,6 +120,24 @@ where
             NodeRefMut::new_raw_unchecked(self, self.root.clone())
         }
     }
+    /// Returns the number of nodes in the tree.
+    pub fn num_nodes(&self) -> usize {
+        self.storage.len()
+    }
+    /// Returns the additional number of nodes which the tree can store without the need to reallocate.
+    pub fn capacity(&self) -> usize {
+        self.storage.capacity()
+    }
+    /// Reserves capacity for at least additional more elements to be inserted in the given storage. The storage may reserve more space to avoid frequent reallocations. After calling `reserve`, capacity will be greater than or equal to `self.len()` + `additional`. Does nothing if capacity is already sufficient.
+    pub fn reserve(&mut self, additional: usize) {
+        self.storage.reserve(additional)
+    }
+    /// Shrinks the capacity of the storage as much as possible.
+    ///
+    /// It will drop down as close as possible to the current length, though dynamically allocated storages may not always reallocate exactly as much as it is needed to store all elements and none more.
+    pub fn shrink_to_fit(&mut self) {
+        self.storage.shrink_to_fit()
+    }
 }
 impl<B, L, S> Octree<B, L, usize, SparseStorage<Node<B, L, usize>, S>>
 where
