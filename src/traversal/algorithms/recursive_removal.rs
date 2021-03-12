@@ -145,16 +145,12 @@ impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> VisitorMut for Recursive
                 let mut child_payload = None;
                 let mut current_child_index = 0_usize;
                 let result = traversable
-                    .try_remove_branch_into(
-                        &cursor,
-                        &mut self.conversion,
-                        |c| {
-                            if Some(current_child_index) == target_child_index {
-                                child_payload = Some(c);
-                            }
-                            current_child_index += 1;
-                        },
-                    )
+                    .try_remove_branch_into(&cursor, &mut self.conversion, |c| {
+                        if Some(current_child_index) == target_child_index {
+                            child_payload = Some(c);
+                        }
+                        current_child_index += 1;
+                    })
                     .map_err(|e| match e {
                         TryRemoveBranchError::WasRootNode => {
                             panic!("attempted to remove the root node")
@@ -208,21 +204,17 @@ the removed node was not a root node but its parent node could not be found",
                 };
                 let mut child_payload = None;
                 let mut current_child_index = 0_usize;
-                let result = traversable.try_remove_children_into(
-                    &cursor,
-                    &mut self.conversion,
-                    |c| {
+                let result =
+                    traversable.try_remove_children_into(&cursor, &mut self.conversion, |c| {
                         if Some(current_child_index) == target_child_index {
                             child_payload = Some(c);
                         }
                         current_child_index += 1;
-                    }
-                );
+                    });
                 match result {
-                    Ok(()) => child_payload.map_or(
-                        VisitorDirection::Parent,
-                        |child_payload| VisitorDirection::Stop(NodeValue::Leaf(child_payload)),
-                    ),
+                    Ok(()) => child_payload.map_or(VisitorDirection::Parent, |child_payload| {
+                        VisitorDirection::Stop(NodeValue::Leaf(child_payload))
+                    }),
                     Err(e) => match e {
                         TryRemoveChildrenError::WasLeafNode => panic!(
                             "\

@@ -20,83 +20,26 @@ impl<T, U> ArrayMap<T, U> for [T; 4] {
     type Output = [U; 4];
     #[inline]
     fn array_map(self, mut f: impl FnMut(T) -> U) -> Self::Output {
-        let [
-            e0,
-            e1,
-            e2,
-            e3,
-        ] = self;
-        [
-            f(e0),
-            f(e1),
-            f(e2),
-            f(e3),
-        ]
+        let [e0, e1, e2, e3] = self;
+        [f(e0), f(e1), f(e2), f(e3)]
     }
     #[inline]
     fn array_map_by_ref(&self, mut f: impl FnMut(&T) -> U) -> Self::Output {
-        let [
-            e0,
-            e1,
-            e2,
-            e3,
-        ] = self;
-        [
-            f(e0),
-            f(e1),
-            f(e2),
-            f(e3),
-
-        ]
+        let [e0, e1, e2, e3] = self;
+        [f(e0), f(e1), f(e2), f(e3)]
     }
 }
 impl<T, U> ArrayMap<T, U> for [T; 8] {
     type Output = [U; 8];
     #[inline]
     fn array_map(self, mut f: impl FnMut(T) -> U) -> Self::Output {
-        let [
-            e0,
-            e1,
-            e2,
-            e3,
-            e4,
-            e5,
-            e6,
-            e7,
-        ] = self;
-        [
-            f(e0),
-            f(e1),
-            f(e2),
-            f(e3),
-            f(e4),
-            f(e5),
-            f(e6),
-            f(e7),
-        ]
+        let [e0, e1, e2, e3, e4, e5, e6, e7] = self;
+        [f(e0), f(e1), f(e2), f(e3), f(e4), f(e5), f(e6), f(e7)]
     }
     #[inline]
     fn array_map_by_ref(&self, mut f: impl FnMut(&T) -> U) -> Self::Output {
-        let [
-            e0,
-            e1,
-            e2,
-            e3,
-            e4,
-            e5,
-            e6,
-            e7,
-        ] = self;
-        [
-            f(e0),
-            f(e1),
-            f(e2),
-            f(e3),
-            f(e4),
-            f(e5),
-            f(e6),
-            f(e7),
-        ]
+        let [e0, e1, e2, e3, e4, e5, e6, e7] = self;
+        [f(e0), f(e1), f(e2), f(e3), f(e4), f(e5), f(e6), f(e7)]
     }
 }
 
@@ -117,11 +60,11 @@ pub unsafe fn unreachable_debugchecked(msg: &str) -> ! {
 
 #[inline]
 pub fn abort_on_panic<R>(f: impl FnOnce() -> R) -> R {
+    // TODO replace with #[cfg(panic = "unwind")] once it stabilizes
     #[cfg(feature = "unwind_safety")]
     {
-        std::panic::catch_unwind(
-            std::panic::AssertUnwindSafe(f)
-        ).unwrap_or_else(|_| std::process::exit(101))
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+            .unwrap_or_else(|_| std::process::exit(101))
     }
     #[cfg(not(feature = "unwind_safety"))]
     {

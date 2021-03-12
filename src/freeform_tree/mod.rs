@@ -48,13 +48,7 @@ use core::{
     iter::Empty,
 };
 use crate::{
-    storage::{
-        Storage,
-        ListStorage,
-        DefaultStorage,
-        SparseStorage,
-        SparseStorageSlot,
-    },
+    storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot},
     traversal::{
         Traversable,
         TraversableMut,
@@ -289,13 +283,11 @@ where
             VisitorDirection::Parent => node.parent().map(NodeRef::into_raw_key).ok_or(error),
             VisitorDirection::NextSibling => {
                 node.next_sibling().map(NodeRef::into_raw_key).ok_or(error)
-            },
-            VisitorDirection::Child(num) => {
-                node
-                    .children_keys()
-                    .and_then(|mut x| x.nth(num as usize))
-                    .ok_or(error)
-            },
+            }
+            VisitorDirection::Child(num) => node
+                .children_keys()
+                .and_then(|mut x| x.nth(num as usize))
+                .ok_or(error),
             VisitorDirection::SetTo(new_cursor) => {
                 if self.storage.contains_key(&new_cursor) {
                     Ok(new_cursor)
@@ -303,7 +295,7 @@ where
                     // Do not allow returning invalid cursors, as those will cause panicking
                     Err(error)
                 }
-            },
+            }
             VisitorDirection::Stop(..) => Err(error),
         }
     }
@@ -330,9 +322,7 @@ where
     fn num_children_of(&self, cursor: &Self::Cursor) -> usize {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
-        node_ref
-            .children_keys()
-            .map_or(0, Iterator::count)
+        node_ref.children_keys().map_or(0, Iterator::count)
     }
     #[inline]
     #[track_caller]
@@ -427,12 +417,8 @@ impl<T> Display for TryPushError<T> {
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "alloc")))]
 #[allow(unused_qualifications)]
-pub type SparseVecFreeformTree<B, L = B> = FreeformTree<
-    B,
-    L,
-    usize,
-    crate::storage::SparseVec<Node<B, L, usize>>,
->;
+pub type SparseVecFreeformTree<B, L = B> =
+    FreeformTree<B, L, usize, crate::storage::SparseVec<Node<B, L, usize>>>;
 /// A freeform tree which uses a `Vec` as backing storage.
 ///
 /// The default `FreeformTree` type uses `Vec` with sparse storage. Not using sparse storage is heavily discouraged, as the memory usage penalty is negligible. Still, this is provided for convenience.

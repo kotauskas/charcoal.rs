@@ -1,9 +1,4 @@
-use core::{
-    fmt::Debug,
-    ptr,
-    convert,
-    hint,
-};
+use core::{fmt::Debug, ptr, convert, hint};
 use super::{Octree, Node, NodeData, PackedChildren};
 use crate::{
     Storage,
@@ -12,11 +7,7 @@ use crate::{
     TryRemoveChildrenError,
     MakeBranchError,
     traversal::algorithms,
-    util::{
-        ArrayMap,
-        abort_on_panic,
-        unreachable_debugchecked,
-    },
+    util::{ArrayMap, abort_on_panic, unreachable_debugchecked},
 };
 
 /// A reference to a node in an octree.
@@ -85,7 +76,7 @@ where
     #[inline]
     pub fn is_leaf(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => false,
+            NodeData::Branch { .. } => false,
             NodeData::Leaf(..) => true,
         }
     }
@@ -93,7 +84,7 @@ where
     #[inline]
     pub fn is_branch(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => true,
+            NodeData::Branch { .. } => true,
             NodeData::Leaf(..) => false,
         }
     }
@@ -108,9 +99,7 @@ where
         let parent = self.parent()?;
         for (sibling, index) in parent
             .children()
-            .unwrap_or_else(|| unsafe {
-                unreachable_debugchecked("parent nodes cannot be leaves")
-            })
+            .unwrap_or_else(|| unsafe { unreachable_debugchecked("parent nodes cannot be leaves") })
             .iter()
             .zip(0_u8..)
         {
@@ -118,16 +107,16 @@ where
                 return Some(index);
             }
         }
-        unsafe {
-            unreachable_debugchecked("failed to find node in parent's child list")
-        }
+        unsafe { unreachable_debugchecked("failed to find node in parent's child list") }
     }
     /// Returns references to the children, or `None` if the node is a leaf node.
     #[inline]
     pub fn children(&self) -> Option<[Self; 8]> {
         if let NodeData::Branch { children, .. } = &self.node().value {
             Some(children)
-        } else {None}
+        } else {
+            None
+        }
         .map(|children| unsafe {
             for c in children {
                 debug_assert!(
@@ -137,12 +126,8 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     c,
                 );
             }
-            let [
-                child_0, child_1,
-                child_2, child_3,
-                child_4, child_5,
-                child_6, child_7,
-            ] = children.clone();
+            let [child_0, child_1, child_2, child_3, child_4, child_5, child_6, child_7] =
+                children.clone();
             // There might be a way to make this look nicer.
             [
                 // SAFETY: child keys are guaranteed to be valid; a key check to make sure that
@@ -172,7 +157,9 @@ octrees have either 0 or 8 children, at indicies from 0 to 7, but child at index
         );
         if let NodeData::Branch { children, .. } = &self.node().value {
             Some(children)
-        } else {None}
+        } else {
+            None
+        }
         .map(|children| unsafe {
             // SAFETY: the beginning of the function checks n
             let child = children.get_unchecked(n as usize);
@@ -207,7 +194,8 @@ impl<B, L, K, S> Copy for NodeRef<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Copy + Debug + Eq,
-{}
+{
+}
 impl<B, L, K, S> Clone for NodeRef<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
@@ -307,7 +295,7 @@ where
     #[inline]
     pub fn is_leaf(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => false,
+            NodeData::Branch { .. } => false,
             NodeData::Leaf(..) => true,
         }
     }
@@ -315,7 +303,7 @@ where
     #[inline]
     pub fn is_branch(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => true,
+            NodeData::Branch { .. } => true,
             NodeData::Leaf(..) => false,
         }
     }
@@ -330,9 +318,7 @@ where
         let parent = self.parent()?;
         for (sibling, index) in parent
             .children()
-            .unwrap_or_else(|| unsafe {
-                unreachable_debugchecked("parent nodes cannot be leaves")
-            })
+            .unwrap_or_else(|| unsafe { unreachable_debugchecked("parent nodes cannot be leaves") })
             .iter()
             .zip(0_u8..)
         {
@@ -340,9 +326,7 @@ where
                 return Some(index);
             }
         }
-        unsafe {
-            unreachable_debugchecked("failed to find node in parent's child list")
-        }
+        unsafe { unreachable_debugchecked("failed to find node in parent's child list") }
     }
     /// Returns a *mutable* reference to the data stored in the node.
     #[inline(always)]
@@ -354,7 +338,9 @@ where
     pub fn children(&self) -> Option<[NodeRef<'_, B, L, K, S>; 8]> {
         if let NodeData::Branch { children, .. } = &self.node().value {
             Some(children)
-        } else {None}
+        } else {
+            None
+        }
         .map(|children| unsafe {
             for c in children {
                 debug_assert!(
@@ -385,7 +371,9 @@ octrees have either 0 or 8 children, at indicies from 0 to 7, but child at index
         );
         if let NodeData::Branch { children, .. } = &self.node().value {
             Some(children)
-        } else {None}
+        } else {
+            None
+        }
         .map(|children| unsafe {
             // SAFETY: the beginning of the function checks n
             let child = children.get_unchecked(n as usize);
@@ -415,7 +403,10 @@ octrees have either 0 or 8 children, at indicies from 0 to 7, but child at index
         );
         let children = if let NodeData::Branch { children, .. } = &self.node().value {
             Some(children)
-        } else {None}.cloned();
+        } else {
+            None
+        }
+        .cloned();
         children.map(move |children| unsafe {
             // SAFETY: the beginning of the function checks n
             let child = children.get_unchecked(n as usize);
@@ -445,9 +436,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         let old_payload_ref = if let NodeData::Leaf(val) = &self.node().value {
             val
         } else {
-            return Err(
-                MakeBranchError {packed_children: children.into()}
-            )
+            return Err(MakeBranchError {
+                packed_children: children.into(),
+            });
         };
         let old_payload = unsafe {
             // SAFETY: both pointer validity and overwriting are upheld
@@ -455,19 +446,17 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         };
         let payload = leaf_to_branch(old_payload);
         let self_key = self.raw_key().clone();
-        let children = children.array_map(
-            |value| self.tree.storage.add(
-                unsafe {
-                    // SAFETY: key validity of self is implied
-                    Node::leaf(value, Some(self_key.clone()))
-                }
-            )
-        );
+        let children = children.array_map(|value| {
+            self.tree.storage.add(unsafe {
+                // SAFETY: key validity of self is implied
+                Node::leaf(value, Some(self_key.clone()))
+            })
+        });
         unsafe {
             // SAFETY: as above
             ptr::write(
                 &mut self.node_mut().value,
-                NodeData::Branch {children, payload}
+                NodeData::Branch { children, payload },
             )
         }
         Ok(())
@@ -487,15 +476,20 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         let children_keys = {
             let children_keys = if let NodeData::Branch { children, .. } = &self.node().value {
                 Some(children)
-            } else {None}.ok_or(TryRemoveChildrenError::WasLeafNode)?;
+            } else {
+                None
+            }
+            .ok_or(TryRemoveChildrenError::WasLeafNode)?;
             for (c, i) in children_keys.iter().zip(0_u32..) {
                 let child_ref = unsafe {
                     // SAFETY: key validity is assumed, since invalid ones cannot possibly be stored
                     self.tree.storage.get_unchecked(c)
                 };
                 match &child_ref.value {
-                    NodeData::Branch {..} => return Err(TryRemoveChildrenError::HadBranchChild(i)),
-                    NodeData::Leaf(..) => {},
+                    NodeData::Branch { .. } => {
+                        return Err(TryRemoveChildrenError::HadBranchChild(i))
+                    }
+                    NodeData::Leaf(..) => {}
                 };
             }
             children_keys.clone() // borrow checker got trolled
@@ -526,9 +520,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             // SAFETY: as above
             ptr::write(
                 &mut self.node_mut().value,
-                NodeData::Leaf(
-                    abort_on_panic(|| branch_to_leaf(old_payload))
-                ),
+                NodeData::Leaf(abort_on_panic(|| branch_to_leaf(old_payload))),
             );
         }
         Ok(children_payloads)

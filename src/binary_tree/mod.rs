@@ -37,19 +37,8 @@
 
 use core::fmt::{self, Formatter, Debug, Display};
 use crate::{
-    storage::{
-        Storage,
-        ListStorage,
-        DefaultStorage,
-        SparseStorage,
-        SparseStorageSlot,
-    },
-    traversal::{
-        Traversable,
-        TraversableMut,
-        VisitorDirection,
-        CursorDirectionError,
-    },
+    storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot},
+    traversal::{Traversable, TraversableMut, VisitorDirection, CursorDirectionError},
     util::unreachable_debugchecked,
     NodeValue,
     TryRemoveBranchError,
@@ -267,15 +256,14 @@ where
             VisitorDirection::Parent => node.parent().ok_or(error).map(NodeRef::into_raw_key),
             VisitorDirection::NextSibling => {
                 if node.is_left_child() == Some(true) {
-                    node
-                        .parent()
+                    node.parent()
                         .unwrap_or_else(|| unsafe {
                             unreachable_debugchecked("parent nodes cannot be leaves")
                         })
                         .right_child()
                         .map(NodeRef::into_raw_key)
                         .ok_or(error)
-                }  else {
+                } else {
                     Err(error)
                 }
             }
@@ -481,21 +469,17 @@ impl<L> MakeFullBranchError<L> {
     #[allow(clippy::missing_const_for_fn)] // Clippy has no idea what a destructor is
     pub fn right_child(self) -> L {
         match self {
-              Self::WasLeafNode   { right_child }
-            | Self::WasFullBranch { right_child }
-            => right_child,
+            Self::WasLeafNode { right_child } | Self::WasFullBranch { right_child } => right_child,
         }
     }
 }
 impl<L> Display for MakeFullBranchError<L> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.pad(
-            match self {
-                Self::WasLeafNode {..} => "the node was a leaf, not a partial branch",
-                Self::WasFullBranch {..} => "the node already was a full branch",
-            }
-        )
+        f.pad(match self {
+            Self::WasLeafNode { .. } => "the node was a leaf, not a partial branch",
+            Self::WasFullBranch { .. } => "the node already was a full branch",
+        })
     }
 }
 #[cfg(feature = "std")]
@@ -508,12 +492,8 @@ impl<L: Debug> std::error::Error for MakeFullBranchError<L> {}
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "alloc")))]
 #[allow(unused_qualifications)]
-pub type SparseVecBinaryTree<B, L = B> = BinaryTree<
-    B,
-    L,
-    usize,
-    crate::storage::SparseVec<Node<B, L, usize>>,
->;
+pub type SparseVecBinaryTree<B, L = B> =
+    BinaryTree<B, L, usize, crate::storage::SparseVec<Node<B, L, usize>>>;
 /// A binary tree which uses a `Vec` as backing storage.
 ///
 /// The default `BinaryTree` type uses `Vec` with sparse storage. Not using sparse storage is heavily discouraged, as the memory usage penalty is negligible. Still, this is provided for convenience.

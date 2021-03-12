@@ -1,11 +1,4 @@
-use core::{
-    ptr,
-    mem,
-    fmt::Debug,
-    hint,
-    convert,
-    iter::FusedIterator,
-};
+use core::{ptr, mem, fmt::Debug, hint, convert, iter::FusedIterator};
 use crate::{
     storage::{Storage, DefaultStorage},
     util::{unreachable_debugchecked, abort_on_panic},
@@ -16,12 +9,7 @@ use crate::{
     traversal::algorithms,
     NodeValue,
 };
-use super::{
-    TryPushError,
-    FreeformTree,
-    Node,
-    NodeData,
-};
+use super::{TryPushError, FreeformTree, Node, NodeData};
 
 // A reference to a node in a freeform tree.
 ///
@@ -100,11 +88,11 @@ where
         if let NodeData::Branch { first_child, .. } = &self.node().value {
             unsafe {
                 // SAFETY: first child key is always valid
-                Some(
-                    Self::new_raw_unchecked(self.tree, first_child.clone())
-                )
+                Some(Self::new_raw_unchecked(self.tree, first_child.clone()))
             }
-        } else {None}
+        } else {
+            None
+        }
     }
     /// Returns a reference to the last child of the node, or `None` if it's a leaf node.
     #[inline]
@@ -112,11 +100,11 @@ where
         if let NodeData::Branch { last_child, .. } = &self.node().value {
             unsafe {
                 // SAFETY: last child key is always valid
-                Some(
-                    Self::new_raw_unchecked(self.tree, last_child.clone())
-                )
+                Some(Self::new_raw_unchecked(self.tree, last_child.clone()))
             }
-        } else {None}
+        } else {
+            None
+        }
     }
     /// Returns `true` if the node is the root node, `false` otherwise.
     #[inline(always)]
@@ -129,7 +117,7 @@ where
     #[inline]
     pub fn is_leaf(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => false,
+            NodeData::Branch { .. } => false,
             NodeData::Leaf(..) => true,
         }
     }
@@ -137,7 +125,7 @@ where
     #[inline]
     pub fn is_branch(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => true,
+            NodeData::Branch { .. } => true,
             NodeData::Leaf(..) => false,
         }
     }
@@ -159,7 +147,7 @@ where
     /// Returns an iterator over references to the siblings of the node. Does not include siblings which come before the current node. The first element yielded is always `self`.
     #[inline(always)]
     pub fn siblings(self) -> NodeSiblingsIter<'a, B, L, K, S> {
-        NodeSiblingsIter (self.sibling_keys())
+        NodeSiblingsIter(self.sibling_keys())
     }
     /// Returns an iterator over the raw keys of the siblings of the node. Does not include siblings which come before the current node. The first element yielded is always `self`'s key.
     #[inline(always)]
@@ -188,7 +176,8 @@ impl<B, L, K, S> Copy for NodeRef<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Copy + Debug + Eq,
-{}
+{
+}
 impl<B, L, K, S> Clone for NodeRef<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
@@ -327,11 +316,11 @@ where
         if let NodeData::Branch { first_child, .. } = &self.node().value {
             unsafe {
                 // SAFETY: first child key is always valid
-                Some(
-                    NodeRef::new_raw_unchecked(self.tree, first_child.clone())
-                )
+                Some(NodeRef::new_raw_unchecked(self.tree, first_child.clone()))
             }
-        } else {None}
+        } else {
+            None
+        }
     }
     /// Returns a *mutable* reference to the first child of the node, or `None` if it's a leaf node.
     #[inline]
@@ -340,11 +329,11 @@ where
             let key = first_child.clone();
             unsafe {
                 // SAFETY: first child key is always valid
-                Some(
-                    NodeRefMut::new_raw_unchecked(self.tree, key)
-                )
+                Some(NodeRefMut::new_raw_unchecked(self.tree, key))
             }
-        } else {None}
+        } else {
+            None
+        }
     }
     /// Returns a reference to the last child of the node, or `None` if it's a leaf node.
     #[inline]
@@ -353,11 +342,11 @@ where
             let key = last_child.clone();
             unsafe {
                 // SAFETY: last child key is always valid
-                Some(
-                    NodeRef::new_raw_unchecked(self.tree, key)
-                )
+                Some(NodeRef::new_raw_unchecked(self.tree, key))
             }
-        } else {None}
+        } else {
+            None
+        }
     }
     /// Returns a *mutable* reference to the last child of the node, or `None` if it's a leaf node.
     #[inline]
@@ -366,11 +355,11 @@ where
             let key = last_child.clone();
             unsafe {
                 // SAFETY: last child key is always valid
-                Some(
-                    NodeRefMut::new_raw_unchecked(self.tree, key)
-                )
+                Some(NodeRefMut::new_raw_unchecked(self.tree, key))
             }
-        } else {None}
+        } else {
+            None
+        }
     }
     /// Returns `true` if the node is the root node, `false` otherwise.
     #[inline(always)]
@@ -382,7 +371,7 @@ where
     #[inline]
     pub fn is_leaf(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => false,
+            NodeData::Branch { .. } => false,
             NodeData::Leaf(..) => true,
         }
     }
@@ -390,7 +379,7 @@ where
     #[inline]
     pub fn is_branch(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => true,
+            NodeData::Branch { .. } => true,
             NodeData::Leaf(..) => false,
         }
     }
@@ -407,7 +396,7 @@ where
     /// Returns an iterator over references to the siblings of the node. Does not include siblings which come before the current node. The first element yielded is always `self`.
     #[inline(always)]
     pub fn siblings(self) -> NodeSiblingsIter<'a, B, L, K, S> {
-        NodeSiblingsIter (self.sibling_keys())
+        NodeSiblingsIter(self.sibling_keys())
     }
     /// Returns an iterator over the raw keys of the siblings of the node. Does not include siblings which come before the current node. The first element yielded is always `self`'s key.
     #[inline(always)]
@@ -440,16 +429,16 @@ where
     ) -> Result<(), MakeBranchError<L, I>> {
         // The borrow checker forced us into doing a two-stage thing here
         if self.is_branch() {
-            return Err(MakeBranchError {packed_children: children});
+            return Err(MakeBranchError {
+                packed_children: children,
+            });
         }
         let mut children = children.into_iter();
         let first_element = if let Some(x) = children.next() {
-            self.tree.storage.add(
-                unsafe {
-                    // SAFETY: parent key validity guaranteed via own key validity guarantee
-                    Node::leaf(x, None, None, Some(self.key.clone()))
-                }
-            )
+            self.tree.storage.add(unsafe {
+                // SAFETY: parent key validity guaranteed via own key validity guarantee
+                Node::leaf(x, None, None, Some(self.key.clone()))
+            })
         } else {
             return Ok(());
         };
@@ -480,20 +469,22 @@ where
         let mut current_element_key = first_element;
         let mut previous_element_key = None;
         for next_element in children {
-            let next_element_key = self.tree.storage.add(
-                unsafe {
-                    // SAFETY: see safety for first_element
-                    Node::leaf(
-                        next_element,
-                        previous_element_key,
-                        None,
-                        Some(self.key.clone()),
-                    )
-                }
-            );
+            let next_element_key = self.tree.storage.add(unsafe {
+                // SAFETY: see safety for first_element
+                Node::leaf(
+                    next_element,
+                    previous_element_key,
+                    None,
+                    Some(self.key.clone()),
+                )
+            });
             let next_sibling_key_ref = unsafe {
                 // SAFETY: key validity gurantee comes from safety contract of Storage
-                &mut self.tree.storage.get_unchecked_mut(&current_element_key).next_sibling
+                &mut self
+                    .tree
+                    .storage
+                    .get_unchecked_mut(&current_element_key)
+                    .next_sibling
             };
             *next_sibling_key_ref = Some(next_element_key.clone());
             // Move the old current element to previous, put the next one into the current
@@ -507,11 +498,11 @@ where
             NodeData::Leaf(..) => unsafe {
                 // SAFETY: the method makes numerous checks for a leaf node
                 hint::unreachable_unchecked()
-            }
+            },
         }
         Ok(())
     }
-    
+
     /// Adds a child node to the node's children set after all other ones, failing if it's not a branch node.
     ///
     /// # Errors
@@ -524,7 +515,7 @@ where
     #[inline]
     pub fn try_push_back(&mut self, child_payload: L) -> Result<(), TryPushError<L>> {
         if self.is_leaf() {
-            return Err(TryPushError {child_payload});
+            return Err(TryPushError { child_payload });
         }
         let child_key = self.tree.storage.add(unsafe {
             // SAFETY: key validity guaranteed
@@ -535,7 +526,7 @@ where
             NodeData::Leaf(..) => unsafe {
                 // SAFETY: we did a leaf check in the beginning
                 hint::unreachable_unchecked()
-            }
+            },
         };
         let old_last_child_key = mem::replace(old_last_child_key_ref, child_key.clone());
         let old_last_child = unsafe {
@@ -562,7 +553,7 @@ where
     #[inline]
     pub fn try_push_front(&mut self, child_payload: L) -> Result<(), TryPushError<L>> {
         if self.is_leaf() {
-            return Err(TryPushError {child_payload});
+            return Err(TryPushError { child_payload });
         }
         let child_key = self.tree.storage.add(unsafe {
             // SAFETY: key validity guaranteed
@@ -573,7 +564,7 @@ where
             NodeData::Leaf(..) => unsafe {
                 // SAFETY: we did a leaf check in the beginning
                 hint::unreachable_unchecked()
-            }
+            },
         };
         let old_first_child_key = mem::replace(old_first_child_key_ref, child_key.clone());
         let old_first_child = unsafe {
@@ -609,10 +600,7 @@ where
             .as_ref()
             .cloned()
             .ok_or(TryRemoveLeafError::WasRootNode)?;
-        let (
-            prev_sibling_key,
-            next_sibling_key,
-        ) = (
+        let (prev_sibling_key, next_sibling_key) = (
             self.node().prev_sibling.clone(),
             self.node().next_sibling.clone(),
         );
@@ -668,9 +656,7 @@ where
             let parent_payload_ref = if let NodeData::Branch { payload, .. } = &parent.value {
                 payload
             } else {
-                unsafe {
-                    unreachable_debugchecked("parent nodes cannot be leaves")
-                }
+                unsafe { unreachable_debugchecked("parent nodes cannot be leaves") }
             };
             let parent_payload = unsafe {
                 // SAFETY: we're overwriting this afterwards
@@ -679,10 +665,7 @@ where
             let new_parent_payload = abort_on_panic(|| branch_to_leaf(parent_payload));
             unsafe {
                 // SAFETY: see read()
-                ptr::write(
-                    &mut parent.value,
-                    NodeData::Leaf(new_parent_payload),
-                );
+                ptr::write(&mut parent.value, NodeData::Leaf(new_parent_payload));
             }
         }
         let val = self.tree.storage.remove(&self.key);
@@ -741,7 +724,8 @@ where
         loop {
             let next_child_key = unsafe {
                 // SAFETY: key validity guarantee
-                self.tree.storage
+                self.tree
+                    .storage
                     .get_unchecked(&current_child_key)
                     .next_sibling
                     .clone()
@@ -760,7 +744,9 @@ where
             abort_on_panic(|| collector(current_child));
             current_child_key = if let Some(next_child_key) = next_child_key {
                 next_child_key
-            } else {break};
+            } else {
+                break;
+            };
         }
         let parent_ref = unsafe {
             // SAFETY: key validity guarantee
@@ -770,17 +756,16 @@ where
             first_child,
             last_child,
             ..
-        } = &parent_ref.value {
+        } = &parent_ref.value
+        {
             first_child == last_child
         } else {
-            unsafe {
-                unreachable_debugchecked("parent nodes cannot be leaves")
-            }
+            unsafe { unreachable_debugchecked("parent nodes cannot be leaves") }
         };
         if is_only_sibling {
-            let old_parent_payload_ref = if let Some(
-                NodeData::Branch {payload, ..}
-            ) = self.parent().map(|x| &x.node().value) {
+            let old_parent_payload_ref = if let Some(NodeData::Branch { payload, .. }) =
+                self.parent().map(|x| &x.node().value)
+            {
                 payload
             } else {
                 unsafe {
@@ -799,13 +784,11 @@ where
             unsafe {
                 ptr::write(
                     &mut parent.value,
-                    NodeData::Leaf(
-                        abort_on_panic(|| branch_to_leaf(old_parent_payload))
-                    ),
+                    NodeData::Leaf(abort_on_panic(|| branch_to_leaf(old_parent_payload))),
                 )
             };
         }
-        if let NodeData::Branch { payload, ..} = self.tree.storage.remove(&self.key).value {
+        if let NodeData::Branch { payload, .. } = self.tree.storage.remove(&self.key).value {
             Ok(payload)
         } else {
             unsafe {
@@ -852,7 +835,8 @@ where
         loop {
             let next_child_key = unsafe {
                 // SAFETY: key validity guarantee
-                self.tree.storage
+                self.tree
+                    .storage
                     .get_unchecked(&current_child_key)
                     .next_sibling
                     .clone()
@@ -871,7 +855,9 @@ where
             abort_on_panic(|| collector(current_child));
             current_child_key = if let Some(next_child_key) = next_child_key {
                 next_child_key
-            } else {break};
+            } else {
+                break;
+            };
         }
         let old_payload_ref = if let NodeData::Branch { payload, .. } = &self.node().value {
             payload
@@ -888,9 +874,7 @@ where
         unsafe {
             ptr::write(
                 &mut self.node_mut().value,
-                NodeData::Leaf(
-                    abort_on_panic(|| branch_to_leaf(old_payload))
-                ),
+                NodeData::Leaf(abort_on_panic(|| branch_to_leaf(old_payload))),
             )
         };
         Ok(())
@@ -900,7 +884,6 @@ where
     pub fn recursively_remove_with(self, branch_to_leaf: impl FnMut(B) -> L) -> NodeValue<B, L> {
         algorithms::recursively_remove_with(self.tree, self.key, branch_to_leaf)
     }
-    
 
     #[inline(always)]
     fn node(&self) -> &'_ Node<B, L, K> {
@@ -1069,13 +1052,8 @@ where
     key: Option<K>,
 }
 /// An iterator over keys of the children of a freeform tree node.
-type NodeChildKeysIter<
-    'a,
-    B,
-    L = B,
-    K = usize,
-    S = DefaultStorage<Node<B, L, K>>,
-> = NodeSiblingKeysIter<'a, B, L, K, S>;
+type NodeChildKeysIter<'a, B, L = B, K = usize, S = DefaultStorage<Node<B, L, K>>> =
+    NodeSiblingKeysIter<'a, B, L, K, S>;
 impl<'a, B, L, K, S> Iterator for NodeSiblingKeysIter<'a, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
@@ -1107,28 +1085,20 @@ impl<B, L, K, S> FusedIterator for NodeSiblingKeysIter<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
-{}
+{
+}
 
 /// An iterator over references to the siblings of a freeform tree node.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct NodeSiblingsIter<
-    'a,
-    B,
-    L = B,
-    K = usize,
-    S = DefaultStorage<Node<B, L, K>>,
-> (NodeSiblingKeysIter<'a, B, L, K, S>)
+pub struct NodeSiblingsIter<'a, B, L = B, K = usize, S = DefaultStorage<Node<B, L, K>>>(
+    NodeSiblingKeysIter<'a, B, L, K, S>,
+)
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq;
 /// An iterator over references to the children of a freeform tree node.
-type NodeChildrenIter<
-    'a,
-    B,
-    L = B,
-    K = usize,
-    S = DefaultStorage<Node<B, L, K>>,
-> = NodeSiblingsIter<'a, B, L, K, S>;
+type NodeChildrenIter<'a, B, L = B, K = usize, S = DefaultStorage<Node<B, L, K>>> =
+    NodeSiblingsIter<'a, B, L, K, S>;
 impl<'a, B, L, K, S> Iterator for NodeSiblingsIter<'a, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
@@ -1151,4 +1121,5 @@ impl<B, L, K, S> FusedIterator for NodeSiblingsIter<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
-{}
+{
+}

@@ -113,10 +113,7 @@
     clippy::verbose_file_reads,
     clippy::wrong_pub_self_convention,
 )]
-#![deny(
-    anonymous_parameters,
-    bare_trait_objects,
-)]
+#![deny(anonymous_parameters, bare_trait_objects)]
 #![allow(clippy::use_self)] // FIXME reenable when it gets fixed
 #![cfg_attr(not(feature = "std"), no_std)]
 // TODO reimplement LinkedList
@@ -175,19 +172,11 @@ pub mod prelude {
     #[cfg(feature = "octree")]
     #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "octree")))]
     #[doc(no_inline)]
-    pub use crate::octree::{
-        Octree,
-        NodeRef as OctreeNodeRef,
-        NodeRefMut as OctreeNodeRefMut,
-    };
+    pub use crate::octree::{Octree, NodeRef as OctreeNodeRef, NodeRefMut as OctreeNodeRefMut};
     #[cfg(feature = "quadtree")]
     #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "quadtree")))]
     #[doc(no_inline)]
-    pub use crate::quadtree::{
-        Quadtree,
-        NodeRef as QuadtreeNodeRef,
-        NodeRefMut as QuadtreeNodeRefMut,
-    };
+    pub use crate::quadtree::{Quadtree, NodeRef as QuadtreeNodeRef, NodeRefMut as QuadtreeNodeRefMut};
     #[cfg(feature = "freeform_tree")]
     #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "freeform_tree")))]
     #[doc(no_inline)]
@@ -234,9 +223,7 @@ impl<T> NodeValue<T, T> {
     #[allow(clippy::missing_const_for_fn)]
     pub fn into_inner(self) -> T {
         match self {
-              NodeValue::Branch(x)
-            | NodeValue::Leaf(x)
-            => x,
+            NodeValue::Branch(x) | NodeValue::Leaf(x) => x,
         }
     }
 }
@@ -263,8 +250,7 @@ impl<'a, T> AsMut<T> for NodeValue<&'a mut T, &'a mut T> {
     #[inline(always)]
     fn as_mut(&mut self) -> &mut T {
         match self {
-              NodeValue::Branch(x)
-            | NodeValue::Leaf(x) => x,
+            NodeValue::Branch(x) | NodeValue::Leaf(x) => x,
         }
     }
 }
@@ -376,13 +362,15 @@ impl std::error::Error for TryRemoveChildrenError {}
 /// The error type returned by methods on trees which convert leaf nodes into branch nodes, which occurs when the node which was attempted to be converted already is a branch node.
 #[derive(Copy, Clone, Debug)]
 pub struct MakeBranchError<L, P>
-where P: IntoIterator<Item = L>
+where
+    P: IntoIterator<Item = L>,
 {
     /// The packed children which were passed to the function and were deemed useless because the call failed, provided here so that they don't get dropped if they could instead be reused in the event of a failure.
     pub packed_children: P,
 }
 impl<L, P> Display for MakeBranchError<L, P>
-where P: IntoIterator<Item = L>
+where
+    P: IntoIterator<Item = L>,
 {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -395,4 +383,5 @@ impl<L, P> std::error::Error for MakeBranchError<L, P>
 where
     L: Debug,
     P: IntoIterator<Item = L> + Debug,
-{}
+{
+}

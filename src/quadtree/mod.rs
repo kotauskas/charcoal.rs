@@ -52,13 +52,7 @@ use core::{
     hint,
 };
 use crate::{
-    storage::{
-        Storage,
-        ListStorage,
-        DefaultStorage,
-        SparseStorage,
-        SparseStorageSlot,
-    },
+    storage::{Storage, ListStorage, DefaultStorage, SparseStorage, SparseStorageSlot},
     traversal::{
         Traversable,
         TraversableMut,
@@ -70,10 +64,7 @@ use crate::{
     TryRemoveBranchError,
     TryRemoveLeafError,
     TryRemoveChildrenError,
-    util::{
-        ArrayMap,
-        unreachable_debugchecked,
-    },
+    util::{ArrayMap, unreachable_debugchecked},
 };
 use arrayvec::{ArrayVec, IntoIter as ArrayVecIntoIter};
 
@@ -296,20 +287,20 @@ where
         match direction {
             VisitorDirection::Parent => node.parent().ok_or(error).map(NodeRef::into_raw_key),
             VisitorDirection::NextSibling => {
-                node.child_index().map(|child_index| {
-                    let parent = node
-                        .parent()
-                        .unwrap_or_else(|| unsafe {
+                node.child_index()
+                    .map(|child_index| {
+                        let parent = node.parent().unwrap_or_else(|| unsafe {
                             unreachable_debugchecked("parent nodes cannot be leaves")
                         });
-                    parent
-                        .nth_child(child_index)
-                        .unwrap_or_else(|| unsafe {
-                            // SAFETY: the previous unreachable_debugchecked checked for this
-                            hint::unreachable_unchecked()
-                        })
-                        .into_raw_key()
-                }).ok_or(error)
+                        parent
+                            .nth_child(child_index)
+                            .unwrap_or_else(|| unsafe {
+                                // SAFETY: the previous unreachable_debugchecked checked for this
+                                hint::unreachable_unchecked()
+                            })
+                            .into_raw_key()
+                    })
+                    .ok_or(error)
             }
             VisitorDirection::Child(num) => {
                 let num = if num <= 3 {
@@ -318,7 +309,7 @@ where
                     return Err(error);
                 };
                 node.nth_child(num).map(NodeRef::into_raw_key).ok_or(error)
-            },
+            }
             VisitorDirection::SetTo(new_cursor) => {
                 if self.storage.contains_key(&new_cursor) {
                     Ok(new_cursor)
@@ -326,7 +317,7 @@ where
                     // Do not allow returning invalid cursors, as those will cause panicking
                     Err(error)
                 }
-            },
+            }
             VisitorDirection::Stop(..) => Err(error),
         }
     }
@@ -355,7 +346,7 @@ where
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
         if node_ref.is_branch() {
             4
-        }  else {
+        } else {
             0
         }
     }
@@ -364,8 +355,10 @@ where
     fn nth_child_of(&self, cursor: &Self::Cursor, child_num: usize) -> Option<Self::Cursor> {
         if child_num < 4 {
             let node_ref = NodeRef::new_raw(self, cursor.clone())
-               .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
-            node_ref.nth_child(child_num as u8).map(NodeRef::into_raw_key)
+                .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
+            node_ref
+                .nth_child(child_num as u8)
+                .map(NodeRef::into_raw_key)
         } else {
             None
         }
@@ -441,14 +434,16 @@ where
     ) -> Result<Self::PackedChildren, TryRemoveChildrenError> {
         let mut node_ref = NodeRefMut::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
-        node_ref.try_remove_children_with(branch_to_leaf).map(Into::into)
+        node_ref
+            .try_remove_children_with(branch_to_leaf)
+            .map(Into::into)
     }
 }
 
 /// Packed leaf children nodes of an quadtree's branch node.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct PackedChildren<T> (pub [T; 4]);
+pub struct PackedChildren<T>(pub [T; 4]);
 impl<T> PackedChildren<T> {
     /// Returns the packed children as an array.
     #[inline(always)]
@@ -486,7 +481,7 @@ impl<T> From<[T; 4]> for PackedChildren<T> {
 
 /// An owned iterator over the elements of `PackedChildren`.
 #[derive(Clone, Debug)]
-pub struct PackedChildrenIter<T> (ArrayVecIntoIter<[T; 4]>);
+pub struct PackedChildrenIter<T>(ArrayVecIntoIter<[T; 4]>);
 impl<T> From<PackedChildren<T>> for PackedChildrenIter<T> {
     #[inline(always)]
     fn from(op: PackedChildren<T>) -> Self {
@@ -524,12 +519,8 @@ impl<T> FusedIterator for PackedChildrenIter<T> {}
 #[cfg(feature = "alloc")]
 #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "alloc")))]
 #[allow(unused_qualifications)]
-pub type SparseVecQuadtree<B, L = B> = Quadtree<
-    B,
-    L,
-    usize,
-    crate::storage::SparseVec<Node<B, L, usize>>,
->;
+pub type SparseVecQuadtree<B, L = B> =
+    Quadtree<B, L, usize, crate::storage::SparseVec<Node<B, L, usize>>>;
 /// A quadtree which uses a `Vec` as backing storage.
 ///
 /// The default `Quadtree` type uses `Vec` with sparse storage. Not using sparse storage is heavily discouraged, as the memory usage penalty is negligible. Still, this is provided for convenience.

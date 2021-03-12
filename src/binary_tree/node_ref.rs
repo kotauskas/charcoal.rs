@@ -16,12 +16,7 @@ use crate::{
     NodeValue,
 };
 use arrayvec::ArrayVec;
-use super::{
-    BinaryTree,
-    Node,
-    NodeData,
-    MakeFullBranchError,
-};
+use super::{BinaryTree, Node, NodeData, MakeFullBranchError};
 
 /// A reference to a node in a binary tree.
 ///
@@ -89,7 +84,7 @@ where
     #[inline]
     pub fn is_leaf(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => false,
+            NodeData::Branch { .. } => false,
             NodeData::Leaf(..) => true,
         }
     }
@@ -97,7 +92,7 @@ where
     #[inline]
     pub fn is_branch(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => true,
+            NodeData::Branch { .. } => true,
             NodeData::Leaf(..) => false,
         }
     }
@@ -117,13 +112,9 @@ where
         let parent = self.parent()?;
         let left_child_key = &parent
             .left_child()
-            .unwrap_or_else(|| unsafe {
-                unreachable_debugchecked("parent nodes cannot be leaves")
-            })
+            .unwrap_or_else(|| unsafe { unreachable_debugchecked("parent nodes cannot be leaves") })
             .key;
-        Some(
-            self.key == *left_child_key
-        )
+        Some(self.key == *left_child_key)
     }
     /// Returns `true` if the node is the right child of its parent, `false` if it's the left one and `None` if it's the root node.
     #[inline]
@@ -131,13 +122,9 @@ where
         let parent = self.parent()?;
         let right_child_key = &parent
             .right_child()
-            .unwrap_or_else(|| unsafe {
-                unreachable_debugchecked("parent nodes cannot be leaves")
-            })
+            .unwrap_or_else(|| unsafe { unreachable_debugchecked("parent nodes cannot be leaves") })
             .key;
-        Some(
-            self.key == *right_child_key
-        )
+        Some(self.key == *right_child_key)
     }
     /// Returns references to the children, or `None` if the node is a leaf node or it only has one child. To retreive the left child even if the right one is not present, see `left_child`.
     pub fn children(&self) -> Option<(Self, Self)> {
@@ -176,7 +163,9 @@ debug key check failed: tried to reference keys {:?} and {:?} which are not pres
     pub fn left_child(&self) -> Option<Self> {
         if let NodeData::Branch { left_child, .. } = &self.node().value {
             Some(left_child)
-        } else {None}
+        } else {
+            None
+        }
         .map(|x| unsafe {
             // SAFETY: child keys are guaranteed to be valid; a key check to make sure that
             // properly holds is below.
@@ -197,7 +186,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     pub fn right_child(&self) -> Option<Self> {
         if let NodeData::Branch { left_child, .. } = &self.node().value {
             Some(left_child.clone())
-        } else {None}
+        } else {
+            None
+        }
         .map(|x| unsafe {
             // SAFETY: as above
             debug_assert!(
@@ -228,7 +219,8 @@ impl<B, L, K, S> Copy for NodeRef<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Copy + Debug + Eq,
-{}
+{
+}
 impl<B, L, K, S> Clone for NodeRef<'_, B, L, K, S>
 where
     S: Storage<Element = Node<B, L, K>, Key = K>,
@@ -327,7 +319,7 @@ where
     #[inline]
     pub fn is_leaf(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => false,
+            NodeData::Branch { .. } => false,
             NodeData::Leaf(..) => true,
         }
     }
@@ -335,7 +327,7 @@ where
     #[inline]
     pub fn is_branch(&self) -> bool {
         match &self.node().value {
-            NodeData::Branch {..} => true,
+            NodeData::Branch { .. } => true,
             NodeData::Leaf(..) => false,
         }
     }
@@ -360,13 +352,9 @@ where
         let parent = self.parent()?;
         let left_child_key = &parent
             .left_child()
-            .unwrap_or_else(|| unsafe {
-                unreachable_debugchecked("parent nodes cannot be leaves")
-            })
+            .unwrap_or_else(|| unsafe { unreachable_debugchecked("parent nodes cannot be leaves") })
             .key;
-        Some(
-            self.key == *left_child_key
-        )
+        Some(self.key == *left_child_key)
     }
     /// Returns `true` if the node is the right child of its parent, `false` if it's the left one and `None` if it's the root node.
     #[inline]
@@ -374,13 +362,9 @@ where
         let parent = self.parent()?;
         let right_child_key = &parent
             .right_child()
-            .unwrap_or_else(|| unsafe {
-                unreachable_debugchecked("parent nodes cannot be leaves")
-            })
+            .unwrap_or_else(|| unsafe { unreachable_debugchecked("parent nodes cannot be leaves") })
             .key;
-        Some(
-            self.key == *right_child_key
-        )
+        Some(self.key == *right_child_key)
     }
     /// Returns a reference to the left child, or `None` if the node is a leaf node.
     pub fn left_child(&self) -> Option<NodeRef<'_, B, L, K, S>> {
@@ -390,7 +374,9 @@ where
     pub fn left_child_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         if let NodeData::Branch { left_child, .. } = &self.node().value {
             Some(left_child.clone())
-        } else {None}
+        } else {
+            None
+        }
         .map(move |x| unsafe {
             // SAFETY: child indicies are guaranteed to be valid; a key check to make sure that
             // properly holds is below.
@@ -411,7 +397,9 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     pub fn right_child_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         if let NodeData::Branch { left_child, .. } = &self.node().value {
             Some(left_child.clone())
-        } else {None}
+        } else {
+            None
+        }
         .map(move |x| unsafe {
             // SAFETY: as above
             debug_assert!(
@@ -423,7 +411,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             Self::new_raw_unchecked(self.tree, x)
         })
     }
-    
+
     /// Converts a leaf node into a branch node with the specified leaf children, using the provided closure to convert the payload.
     ///
     /// # Errors
@@ -437,36 +425,30 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         let old_val_ref = if let NodeData::Leaf(val) = &self.node().value {
             val
         } else {
-            return Err(
-                MakeBranchError {
-                    packed_children: {
-                        let mut pack = ArrayVec::new();
-                        pack.push(left_child);
-                        if let Some(x) = right_child {
-                            pack.push(x);
-                        }
-                        pack
+            return Err(MakeBranchError {
+                packed_children: {
+                    let mut pack = ArrayVec::new();
+                    pack.push(left_child);
+                    if let Some(x) = right_child {
+                        pack.push(x);
                     }
-                }
-            )
+                    pack
+                },
+            });
         };
         let old_val = unsafe {
             // SAFETY: the pointer is a valid reference, and we're overwriting the value up next
             ptr::read(old_val_ref)
         };
         let new_val = f(old_val);
-        let new_left_child_key = self.tree.storage.add(
-            unsafe {
-                // SAFETY: key validity is assumed
-                Node::leaf(left_child, Some(self.raw_key().clone()))
-            }
-        );
+        let new_left_child_key = self.tree.storage.add(unsafe {
+            // SAFETY: key validity is assumed
+            Node::leaf(left_child, Some(self.raw_key().clone()))
+        });
         let new_right_child_key = right_child.map(|x| {
-            self.tree.storage.add(
-                unsafe {
-                    Node::leaf(x, Some(self.raw_key().clone()))
-                }
-            )
+            self.tree
+                .storage
+                .add(unsafe { Node::leaf(x, Some(self.raw_key().clone())) })
         });
         unsafe {
             // SAFETY: see ptr::read safety notes above
@@ -476,7 +458,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     payload: new_val,
                     left_child: new_left_child_key,
                     right_child: new_right_child_key,
-                }
+                },
             )
         }
         Ok(())
@@ -494,24 +476,25 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     /// [`make_branch_with`]: #method.make_branch_with " "
     pub fn make_full_branch(&mut self, right_child: L) -> Result<(), MakeFullBranchError<L>> {
         match &self.node().value {
-            NodeData::Branch { right_child: Some(_), .. } => {
-                return Err(MakeFullBranchError::WasFullBranch {right_child});
-            },
-            NodeData::Branch {..} => {},
-            NodeData::Leaf(_) => {
-                return Err(MakeFullBranchError::WasLeafNode {right_child});
-            },
-        }
-        let new_right_child_key = self.tree.storage.add(
-            unsafe {
-                // SAFETY: parent validity is assumed via key validity of self
-                Node::leaf(right_child, Some(self.raw_key().clone()))
+            NodeData::Branch {
+                right_child: Some(_),
+                ..
+            } => {
+                return Err(MakeFullBranchError::WasFullBranch { right_child });
             }
-        );
+            NodeData::Branch { .. } => {}
+            NodeData::Leaf(_) => {
+                return Err(MakeFullBranchError::WasLeafNode { right_child });
+            }
+        }
+        let new_right_child_key = self.tree.storage.add(unsafe {
+            // SAFETY: parent validity is assumed via key validity of self
+            Node::leaf(right_child, Some(self.raw_key().clone()))
+        });
         match &mut self.node_mut().value {
-            NodeData::Branch {right_child, ..} => {
+            NodeData::Branch { right_child, .. } => {
                 *right_child = Some(new_right_child_key);
-            },
+            }
             _ => unsafe {
                 // SAFETY: leaf check was performed in the beginning
                 hint::unreachable_unchecked()
@@ -527,10 +510,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     /// - The node was a branch node, which would require recursion to remove, and this function explicitly does not implement recursive removal.
     /// - The node was the root node, which can never be removed.
     #[inline]
-    pub fn try_remove_leaf_with(
-        self,
-        f: impl FnOnce(B) -> L,
-    ) -> Result<L, TryRemoveLeafError> {
+    pub fn try_remove_leaf_with(self, f: impl FnOnce(B) -> L) -> Result<L, TryRemoveLeafError> {
         if self.is_branch() {
             return Err(TryRemoveLeafError::WasBranchNode);
         }
@@ -569,9 +549,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     // SAFETY: as above
                     ptr::write(
                         &mut self.tree.storage.get_unchecked_mut(&parent_key).value,
-                        NodeData::Leaf(
-                            abort_on_panic(|| f(old_payload))
-                        ),
+                        NodeData::Leaf(abort_on_panic(|| f(old_payload))),
                     );
                 }
             }
@@ -582,7 +560,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 // SAFETY: a node cannot have a parent which does not list it as one
                 // of its children
                 unreachable_debugchecked(
-                    "failed to identify whether the node is the left or right child"
+                    "failed to identify whether the node is the left or right child",
                 )
             }
         }
@@ -607,7 +585,12 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         self,
         f: impl FnOnce(B) -> L,
     ) -> Result<(B, L, Option<L>), TryRemoveBranchError> {
-        if let NodeData::Branch { left_child, right_child, .. } = &self.node().value {
+        if let NodeData::Branch {
+            left_child,
+            right_child,
+            ..
+        } = &self.node().value
+        {
             let (left_child_ref, right_child_ref) = unsafe {
                 // SAFETY: both keys are required to be valid
                 (
@@ -623,7 +606,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 return Err(TryRemoveBranchError::HadBranchChild(1));
             }
         } else {
-            return Err(TryRemoveBranchError::WasLeafNode)
+            return Err(TryRemoveBranchError::WasLeafNode);
         }
         let parent_key = self
             .node()
@@ -660,9 +643,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     // SAFETY: as above
                     ptr::write(
                         &mut self.tree.storage.get_unchecked_mut(&parent_key).value,
-                        NodeData::Leaf(
-                            abort_on_panic(|| f(old_payload))
-                        ),
+                        NodeData::Leaf(abort_on_panic(|| f(old_payload))),
                     );
                 }
             }
@@ -673,7 +654,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                 // SAFETY: a node cannot have a parent which does not list it as one
                 // of its children
                 unreachable_debugchecked(
-                    "failed to identify whether the node is the left or right child"
+                    "failed to identify whether the node is the left or right child",
                 )
             }
         }
@@ -723,7 +704,8 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             left_child,
             right_child,
             ..
-        } = &self.node().value {
+        } = &self.node().value
+        {
             let (left_child_ref, right_child_ref) = unsafe {
                 // SAFETY: both keys are required to be valid
                 (
@@ -740,7 +722,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             }
             (left_child_ref.key, right_child_ref.map(|x| x.key))
         } else {
-            return Err(TryRemoveChildrenError::WasLeafNode)
+            return Err(TryRemoveChildrenError::WasLeafNode);
         };
         let left_child_payload = match self.tree.storage.remove(&left_child_key).value {
             NodeData::Leaf(x) => x,
@@ -774,9 +756,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             // SAFETY: as above
             ptr::write(
                 &mut self.node_mut().value,
-                NodeData::Leaf(
-                    abort_on_panic(|| f(old_payload))
-                )
+                NodeData::Leaf(abort_on_panic(|| f(old_payload))),
             );
         }
         Ok((left_child_payload, right_child_payload))

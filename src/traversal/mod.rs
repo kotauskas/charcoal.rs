@@ -348,7 +348,11 @@ pub trait TraversableMut: Traversable {
         self.traverse_mut_from(self.cursor_to_root(), visitor)
     }
     /// *Mutably* traverses the traversable from the specified starting point until the end, returning the final result of the visitor.
-    fn traverse_mut_from<V: VisitorMut>(&mut self, starting_cursor: Self::Cursor, mut visitor: V) -> V::Output
+    fn traverse_mut_from<V: VisitorMut>(
+        &mut self,
+        starting_cursor: Self::Cursor,
+        mut visitor: V,
+    ) -> V::Output
     where
         for<'a> &'a mut Self: BorrowMut<V::Target>,
         Self::Cursor:
@@ -577,8 +581,8 @@ where
         }
         // Not using fully-qualified syntax breaks rust-analyzer because it thinks that I'm using
         // the Iterator::take method which takes one argument
-        let cursor = Option::take(&mut self.cursor)
-            .unwrap_or_else(|| Ok(self.traversable.cursor_to_root()));
+        let cursor =
+            Option::take(&mut self.cursor).unwrap_or_else(|| Ok(self.traversable.cursor_to_root()));
         match self.traversable.step_mut(&mut self.visitor, cursor) {
             Step::NextCursor(c) => {
                 self.cursor = Some(c);

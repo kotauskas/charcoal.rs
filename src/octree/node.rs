@@ -1,7 +1,4 @@
-use core::{
-    num::NonZeroIsize,
-    fmt::Debug,
-};
+use core::{num::NonZeroIsize, fmt::Debug};
 use crate::{
     storage::{ListStorage, MoveFix},
     util::unreachable_debugchecked,
@@ -13,13 +10,15 @@ use crate::{
 /// Created by the octree internally and only publicly exposed so that octree storages' generic arguments could be specified.
 #[derive(Copy, Clone, Debug, Hash)]
 pub struct Node<B, L, K>
-where K: Clone + Debug + Eq,
+where
+    K: Clone + Debug + Eq,
 {
     pub(super) value: NodeData<B, L, K>,
     pub(super) parent: Option<K>,
 }
 impl<B, L, K> Node<B, L, K>
-where K: Clone + Debug + Eq,
+where
+    K: Clone + Debug + Eq,
 {
     #[inline(always)]
     pub(crate) unsafe fn leaf(value: L, parent: Option<K>) -> Self {
@@ -59,7 +58,8 @@ where K: Clone + Debug + Eq,
 impl<B, L> MoveFix for Node<B, L, usize> {
     #[inline]
     unsafe fn fix_shift<S>(storage: &mut S, shifted_from: usize, shifted_by: NonZeroIsize)
-    where S: ListStorage<Element = Self>,
+    where
+        S: ListStorage<Element = Self>,
     {
         let fix_starting_from = if shifted_by.get() > 0 {
             shifted_from + 1 // If an insertion happened, ignore the new element
@@ -77,7 +77,8 @@ impl<B, L> MoveFix for Node<B, L, usize> {
 
     #[inline]
     unsafe fn fix_move<S>(storage: &mut S, previous_index: usize, current_index: usize)
-    where S: ListStorage<Element = Self>,
+    where
+        S: ListStorage<Element = Self>,
     {
         match /*unsafe*/ {
             // SAFETY: index validity is guaranteed for `current_index`.
@@ -101,13 +102,19 @@ impl<B, L> MoveFix for Node<B, L, usize> {
         let parent_index = if let Some(x) = /*unsafe*/ {
             // SAFETY: index validity is guaranteed for `current_index`.
             storage.get_unchecked(current_index).parent
-        } {x} else {return};
+        } {
+            x
+        } else {
+            return;
+        };
         let parent = storage.get_unchecked_mut(parent_index);
         let children = match &mut parent.value {
-            NodeData::Branch { children, .. } => {children},
-            NodeData::Leaf(..) => /*unsafe*/ {
+            NodeData::Branch { children, .. } => children,
+            NodeData::Leaf(..) =>
+            /*unsafe*/
+            {
                 unreachable_debugchecked("parent nodes cannot be leaves")
-            },
+            }
         };
         for child in children {
             if *child == previous_index {
@@ -115,7 +122,8 @@ impl<B, L> MoveFix for Node<B, L, usize> {
                 return;
             }
         }
-        /*unsafe*/ {
+        /*unsafe*/
+        {
             // SAFETY: this mismatch is assumed to never happen as a guarantee
             // of key validity
             unreachable_debugchecked("failed to find node in parent's child list")
@@ -125,22 +133,17 @@ impl<B, L> MoveFix for Node<B, L, usize> {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) enum NodeData<B, L, K> {
-    Branch {
-        payload: B,
-        children: [K; 8],
-    },
+    Branch { payload: B, children: [K; 8] },
     Leaf(L),
 }
 impl<B, L, K> NodeData<B, L, K>
-where K: Clone + Debug + Eq,
+where
+    K: Clone + Debug + Eq,
 {
     #[inline]
     pub(super) fn as_ref(&self) -> NodeData<&B, &L, K> {
         match self {
-            Self::Branch {
-                payload,
-                children,
-            } => NodeData::Branch {
+            Self::Branch { payload, children } => NodeData::Branch {
                 payload,
                 children: children.clone(),
             },
@@ -150,10 +153,7 @@ where K: Clone + Debug + Eq,
     #[inline]
     pub(super) fn as_mut(&mut self) -> NodeData<&mut B, &mut L, K> {
         match self {
-            Self::Branch {
-                payload,
-                children,
-            } => NodeData::Branch {
+            Self::Branch { payload, children } => NodeData::Branch {
                 payload,
                 children: children.clone(),
             },
