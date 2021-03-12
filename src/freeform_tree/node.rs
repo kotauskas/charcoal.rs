@@ -23,7 +23,6 @@ impl<B, L, K> Node<B, L, K>
 where
     K: Clone + Debug + Eq,
 {
-    #[inline(always)]
     pub(crate) unsafe fn leaf(
         payload: L,
         prev_sibling: Option<K>,
@@ -39,8 +38,7 @@ where
     }
     /*
     Reenable if ever needed
-    #[inline(always)]
-    pub(crate) unsafe fn branch(
+        pub(crate) unsafe fn branch(
         payload: B,
         first_child: K,
         last_child: K,
@@ -64,7 +62,6 @@ where
     ///
     /// # Safety
     /// The node should not be added into a tree if it already has a root node, as there can only be one.
-    #[inline(always)]
     pub(crate) unsafe fn root(value: L) -> Self {
         /*unsafe*/
         {
@@ -76,7 +73,6 @@ where
     }
 }
 impl<B, L> MoveFix for Node<B, L, usize> {
-    #[inline]
     unsafe fn fix_shift<S>(storage: &mut S, shifted_from: usize, shifted_by: NonZeroIsize)
     where
         S: ListStorage<Element = Self>,
@@ -95,7 +91,6 @@ impl<B, L> MoveFix for Node<B, L, usize> {
         }
     }
 
-    #[inline]
     unsafe fn fix_move<S>(storage: &mut S, previous_index: usize, current_index: usize)
     where
         S: ListStorage<Element = Self>,
@@ -179,7 +174,6 @@ impl<B, L, K> NodeData<B, L, K>
 where
     K: Clone + Debug + Eq,
 {
-    #[inline]
     pub(super) fn as_ref(&self) -> NodeData<&B, &L, K> {
         match self {
             Self::Branch {
@@ -194,7 +188,6 @@ where
             Self::Leaf(x) => NodeData::Leaf(x),
         }
     }
-    #[inline]
     pub(super) fn as_mut(&mut self) -> NodeData<&mut B, &mut L, K> {
         match self {
             Self::Branch {
@@ -209,7 +202,6 @@ where
             Self::Leaf(x) => NodeData::Leaf(x),
         }
     }
-    #[inline]
     #[allow(clippy::missing_const_for_fn)] // const fn cannot evaluate drop
     pub(super) fn into_value(self) -> NodeValue<B, L> {
         match self {

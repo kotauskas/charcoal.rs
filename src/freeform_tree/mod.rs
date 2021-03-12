@@ -102,7 +102,6 @@ where
     /// // No other nodes have been created yet:
     /// assert!(tree.root().is_leaf());
     /// ```
-    #[inline(always)]
     pub fn new(root: L) -> Self {
         let mut storage = S::new();
         let root = storage.add(unsafe {
@@ -135,7 +134,6 @@ where
     /// // If the default storage is backed by a dynamic memory allocation,
     /// // at most one has happened to this point.
     /// ```
-    #[inline(always)]
     pub fn with_capacity(capacity: usize, root: L) -> Self {
         let mut storage = S::with_capacity(capacity);
         let root = storage.add(unsafe {
@@ -161,7 +159,6 @@ where
     ///     "Root",
     /// );
     /// ```
-    #[inline(always)]
     #[allow(clippy::missing_const_for_fn)] // there cannot be constant trees just yet
     pub fn root(&self) -> NodeRef<'_, B, L, K, S> {
         unsafe {
@@ -182,7 +179,6 @@ where
     /// // to both work with same and different types for payloads of leaf and branch nodes.
     /// *(root_mut.value_mut().into_inner()) = "The Source of the Beer";
     /// ```
-    #[inline(always)]
     pub fn root_mut(&mut self) -> NodeRefMut<'_, B, L, K, S> {
         unsafe {
             // SAFETY: as above
@@ -233,7 +229,6 @@ where
     /// // Now there are none:
     /// assert_eq!(tree.num_holes(), 0);
     /// ```
-    #[inline(always)]
     pub fn defragment(&mut self) {
         self.storage.defragment_and_fix()
     }
@@ -243,7 +238,6 @@ where
     /// See the example in [`defragment`].
     ///
     /// [`defragment`]: #method.defragment " "
-    #[inline(always)]
     pub fn num_holes(&self) -> usize {
         self.storage.num_holes()
     }
@@ -253,7 +247,6 @@ where
     /// See the example in [`defragment`].
     ///
     /// [`defragment`]: #method.defragment " "
-    #[inline(always)]
     pub fn is_dense(&self) -> bool {
         self.storage.is_dense()
     }
@@ -267,7 +260,6 @@ where
     type Branch = B;
     type Cursor = K;
 
-    #[inline]
     fn advance_cursor<V>(
         &self,
         cursor: Self::Cursor,
@@ -299,32 +291,27 @@ where
             VisitorDirection::Stop(..) => Err(error),
         }
     }
-    #[inline(always)]
     fn cursor_to_root(&self) -> Self::Cursor {
         self.root.clone()
     }
-    #[inline]
     #[track_caller]
     fn value_of(&self, cursor: &Self::Cursor) -> NodeValue<&'_ Self::Branch, &'_ Self::Leaf> {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
         node_ref.value()
     }
-    #[inline]
     #[track_caller]
     fn parent_of(&self, cursor: &Self::Cursor) -> Option<Self::Cursor> {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
         node_ref.parent().map(NodeRef::into_raw_key)
     }
-    #[inline]
     #[track_caller]
     fn num_children_of(&self, cursor: &Self::Cursor) -> usize {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
         node_ref.children_keys().map_or(0, Iterator::count)
     }
-    #[inline]
     #[track_caller]
     fn nth_child_of(&self, cursor: &Self::Cursor, child_num: usize) -> Option<Self::Cursor> {
         NodeRef::new_raw(self, cursor.clone())
@@ -341,7 +328,6 @@ where
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = true;
     type PackedChildren = Empty<L>;
 
-    #[inline]
     #[track_caller]
     fn value_mut_of(
         &mut self,
@@ -354,7 +340,6 @@ where
             .as_mut()
             .into_value()
     }
-    #[inline(always)]
     fn try_remove_leaf<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
@@ -364,7 +349,6 @@ where
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
             .try_remove_leaf_with(branch_to_leaf)
     }
-    #[inline(always)]
     fn try_remove_branch_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
         &mut self,
         cursor: &Self::Cursor,
@@ -375,7 +359,6 @@ where
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor))
             .try_remove_branch_with(branch_to_leaf, collector)
     }
-    #[inline]
     #[track_caller]
     fn try_remove_children_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
         &mut self,
@@ -405,7 +388,6 @@ pub struct TryPushError<T> {
     pub child_payload: T,
 }
 impl<T> Display for TryPushError<T> {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.pad("try_push_back or try_push_front was attempted at a leaf node")
     }

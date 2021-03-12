@@ -108,7 +108,6 @@ where
     /// // No other nodes have been created yet:
     /// assert!(tree.root().is_leaf());
     /// ```
-    #[inline(always)]
     pub fn new(root: L) -> Self {
         let mut storage = S::new();
         let root = storage.add(unsafe {
@@ -141,7 +140,6 @@ where
     /// // If the default storage is backed by a dynamic memory allocation,
     /// // at most one has happened to this point.
     /// ```
-    #[inline(always)]
     pub fn with_capacity(capacity: usize, root: L) -> Self {
         let mut storage = S::with_capacity(capacity);
         let root = storage.add(unsafe {
@@ -167,7 +165,6 @@ where
     ///     "Root",
     /// );
     /// ```
-    #[inline(always)]
     #[allow(clippy::missing_const_for_fn)] // there cannot be constant trees just yet
     pub fn root(&self) -> NodeRef<'_, B, L, K, S> {
         unsafe {
@@ -188,7 +185,6 @@ where
     /// // to both work with same and different types for payloads of leaf and branch nodes.
     /// *(root_mut.value_mut().into_inner()) = "The Source of the Beer";
     /// ```
-    #[inline(always)]
     pub fn root_mut(&mut self) -> NodeRefMut<'_, B, L, K, S> {
         unsafe {
             // SAFETY: as above
@@ -237,7 +233,6 @@ where
     /// // Now there are none:
     /// assert_eq!(tree.num_holes(), 0);
     /// ```
-    #[inline(always)]
     pub fn defragment(&mut self) {
         self.storage.defragment_and_fix()
     }
@@ -247,7 +242,6 @@ where
     /// See the example in [`defragment`].
     ///
     /// [`defragment`]: #method.defragment " "
-    #[inline(always)]
     pub fn num_holes(&self) -> usize {
         self.storage.num_holes()
     }
@@ -257,7 +251,6 @@ where
     /// See the example in [`defragment`].
     ///
     /// [`defragment`]: #method.defragment " "
-    #[inline(always)]
     pub fn is_dense(&self) -> bool {
         self.storage.is_dense()
     }
@@ -272,7 +265,6 @@ where
     type Branch = B;
     type Cursor = K;
 
-    #[inline]
     fn advance_cursor<V>(
         &self,
         cursor: Self::Cursor,
@@ -321,25 +313,21 @@ where
             VisitorDirection::Stop(..) => Err(error),
         }
     }
-    #[inline(always)]
     fn cursor_to_root(&self) -> Self::Cursor {
         self.root.clone()
     }
-    #[inline]
     #[track_caller]
     fn value_of(&self, cursor: &Self::Cursor) -> NodeValue<&'_ Self::Branch, &'_ Self::Leaf> {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
         node_ref.value()
     }
-    #[inline]
     #[track_caller]
     fn parent_of(&self, cursor: &Self::Cursor) -> Option<Self::Cursor> {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
             .unwrap_or_else(|| panic!("invalid cursor: {:?}", cursor));
         node_ref.parent().map(NodeRef::into_raw_key)
     }
-    #[inline]
     #[track_caller]
     fn num_children_of(&self, cursor: &Self::Cursor) -> usize {
         let node_ref = NodeRef::new_raw(self, cursor.clone())
@@ -350,7 +338,6 @@ where
             0
         }
     }
-    #[inline]
     #[track_caller]
     fn nth_child_of(&self, cursor: &Self::Cursor, child_num: usize) -> Option<Self::Cursor> {
         if child_num < 4 {
@@ -373,7 +360,6 @@ where
     const CAN_PACK_CHILDREN: bool = true;
     type PackedChildren = PackedChildren<L>;
 
-    #[inline]
     #[track_caller]
     fn value_mut_of(
         &mut self,
@@ -386,7 +372,6 @@ where
             .as_mut()
             .into_value()
     }
-    #[inline(always)]
     fn try_remove_leaf<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         _cursor: &Self::Cursor,
@@ -394,7 +379,6 @@ where
     ) -> Result<Self::Leaf, TryRemoveLeafError> {
         Err(TryRemoveLeafError::CannotRemoveIndividualChildren)
     }
-    #[inline(always)]
     fn try_remove_branch_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
         &mut self,
         _cursor: &Self::Cursor,
@@ -403,7 +387,6 @@ where
     ) -> Result<Self::Branch, TryRemoveBranchError> {
         Err(TryRemoveBranchError::CannotRemoveIndividualChildren)
     }
-    #[inline]
     #[track_caller]
     fn try_remove_children_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
         &mut self,
@@ -417,7 +400,6 @@ where
             x.array_map(|e| collector(e));
         })
     }
-    #[inline(always)]
     fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         _cursor: &Self::Cursor,
@@ -425,7 +407,6 @@ where
     ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError> {
         Err(TryRemoveBranchError::CannotRemoveIndividualChildren)
     }
-    #[inline]
     #[track_caller]
     fn try_remove_children<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
@@ -446,20 +427,17 @@ where
 pub struct PackedChildren<T>(pub [T; 4]);
 impl<T> PackedChildren<T> {
     /// Returns the packed children as an array.
-    #[inline(always)]
     #[allow(clippy::missing_const_for_fn)] // cannot drop at compile time smh
     pub fn into_inner(self) -> [T; 4] {
         self.0
     }
 }
 impl<T> Borrow<[T]> for PackedChildren<T> {
-    #[inline(always)]
     fn borrow(&self) -> &[T] {
         &self.0
     }
 }
 impl<T> BorrowMut<[T]> for PackedChildren<T> {
-    #[inline(always)]
     fn borrow_mut(&mut self) -> &mut [T] {
         &mut self.0
     }
@@ -467,13 +445,11 @@ impl<T> BorrowMut<[T]> for PackedChildren<T> {
 impl<T> IntoIterator for PackedChildren<T> {
     type Item = T;
     type IntoIter = PackedChildrenIter<T>;
-    #[inline(always)]
     fn into_iter(self) -> Self::IntoIter {
         self.into()
     }
 }
 impl<T> From<[T; 4]> for PackedChildren<T> {
-    #[inline(always)]
     fn from(op: [T; 4]) -> Self {
         Self(op)
     }
@@ -483,30 +459,25 @@ impl<T> From<[T; 4]> for PackedChildren<T> {
 #[derive(Clone, Debug)]
 pub struct PackedChildrenIter<T>(ArrayVecIntoIter<[T; 4]>);
 impl<T> From<PackedChildren<T>> for PackedChildrenIter<T> {
-    #[inline(always)]
     fn from(op: PackedChildren<T>) -> Self {
         Self(ArrayVec::from(op.0).into_iter())
     }
 }
 impl<T> Iterator for PackedChildrenIter<T> {
     type Item = T;
-    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
     }
-    #[inline(always)]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.0.size_hint()
     }
 }
 impl<T> DoubleEndedIterator for PackedChildrenIter<T> {
-    #[inline(always)]
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back()
     }
 }
 impl<T> ExactSizeIterator for PackedChildrenIter<T> {
-    #[inline(always)]
     fn len(&self) -> usize {
         self.0.len()
     }

@@ -29,7 +29,6 @@ where
     K: Clone + Debug + Eq,
 {
     /// Creates a new `NodeRef` pointing to the specified key in the storage, or `None` if it's out of bounds.
-    #[inline]
     pub fn new_raw(tree: &'a FreeformTree<B, L, K, S>, key: K) -> Option<Self> {
         if tree.storage.contains_key(&key) {
             Some(unsafe {
@@ -44,22 +43,18 @@ where
     ///
     /// # Safety
     /// Causes *immediate* undefined behavior if the specified key is not present in the storage.
-    #[inline(always)]
     pub unsafe fn new_raw_unchecked(tree: &'a FreeformTree<B, L, K, S>, key: K) -> Self {
         Self { tree, key }
     }
     /// Returns a reference the raw storage key for the node.
-    #[inline(always)]
     pub fn raw_key(&self) -> &K {
         &self.key
     }
     /// Consumes the reference and returns the underlying raw storage key for the node.
-    #[inline(always)]
     pub fn into_raw_key(self) -> K {
         self.key
     }
     /// Returns a reference to the parent node of the pointee, or `None` if it's the root node.
-    #[inline]
     pub fn parent(&self) -> Option<Self> {
         self.node().parent.as_ref().map(|x| unsafe {
             // SAFETY: nodes can never have out-of-bounds parents
@@ -67,7 +62,6 @@ where
         })
     }
     /// Returns a reference to the sibling of the pointee which comes before it in order, or `None` if it's the first child of its parent.
-    #[inline]
     pub fn prev_sibling(&self) -> Option<Self> {
         self.node().prev_sibling.as_ref().map(|x| unsafe {
             // SAFETY: prev sibling key is always valid
@@ -75,7 +69,6 @@ where
         })
     }
     /// Returns a reference to the sibling of the pointee which comes after it in order, or `None` if it's the last child of its parent.
-    #[inline]
     pub fn next_sibling(&self) -> Option<Self> {
         self.node().next_sibling.as_ref().map(|x| unsafe {
             // SAFETY: next sibling key is always valid
@@ -83,7 +76,6 @@ where
         })
     }
     /// Returns a reference to the first child of the node, or `None` if it's a leaf node.
-    #[inline]
     pub fn first_child(&self) -> Option<Self> {
         if let NodeData::Branch { first_child, .. } = &self.node().value {
             unsafe {
@@ -95,7 +87,6 @@ where
         }
     }
     /// Returns a reference to the last child of the node, or `None` if it's a leaf node.
-    #[inline]
     pub fn last_child(&self) -> Option<Self> {
         if let NodeData::Branch { last_child, .. } = &self.node().value {
             unsafe {
@@ -107,14 +98,12 @@ where
         }
     }
     /// Returns `true` if the node is the root node, `false` otherwise.
-    #[inline(always)]
     // const_option is not stable, and so are trait bounds on const fn parameters other than Sized
     #[allow(clippy::missing_const_for_fn)]
     pub fn is_root(&self) -> bool {
         self.node().parent.is_none()
     }
     /// Returns `true` if the node is a *leaf*, i.e. does not have child nodes; `false` otherwise.
-    #[inline]
     pub fn is_leaf(&self) -> bool {
         match &self.node().value {
             NodeData::Branch { .. } => false,
@@ -122,7 +111,6 @@ where
         }
     }
     /// Returns `true` if the node is a *branch*, i.e. has one or more child nodes; `false` otherwise.
-    #[inline]
     pub fn is_branch(&self) -> bool {
         match &self.node().value {
             NodeData::Branch { .. } => true,
@@ -130,27 +118,22 @@ where
         }
     }
     /// Returns a reference to the data stored in the node.
-    #[inline(always)]
     pub fn value(&self) -> NodeValue<&'a B, &'a L> {
         self.node().value.as_ref().into_value()
     }
     /// Returns an iterator over references to the children of the node, or `None` if the node is a leaf node.
-    #[inline(always)]
     pub fn children(&self) -> Option<NodeChildrenIter<'_, B, L, K, S>> {
         self.first_child().map(Self::siblings)
     }
     /// Returns an iterator over the raw keys of the children of the node, or `None` if the node is a leaf node.
-    #[inline(always)]
     pub fn children_keys(&self) -> Option<NodeChildKeysIter<'_, B, L, K, S>> {
         self.first_child().map(Self::sibling_keys)
     }
     /// Returns an iterator over references to the siblings of the node. Does not include siblings which come before the current node. The first element yielded is always `self`.
-    #[inline(always)]
     pub fn siblings(self) -> NodeSiblingsIter<'a, B, L, K, S> {
         NodeSiblingsIter(self.sibling_keys())
     }
     /// Returns an iterator over the raw keys of the siblings of the node. Does not include siblings which come before the current node. The first element yielded is always `self`'s key.
-    #[inline(always)]
     pub fn sibling_keys(self) -> NodeSiblingKeysIter<'a, B, L, K, S> {
         NodeSiblingKeysIter {
             tree: self.tree,
@@ -158,7 +141,6 @@ where
         }
     }
 
-    #[inline(always)]
     fn node(&self) -> &'a Node<B, L, K> {
         debug_assert!(
             self.tree.storage.contains_key(&self.key),
@@ -183,7 +165,6 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
-    #[inline(always)]
     fn clone(&self) -> Self {
         Self {
             tree: self.tree,
@@ -196,7 +177,6 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
-    #[inline(always)]
     fn from(op: NodeRef<'a, B, L, K, S>) -> Self {
         op.value()
     }
@@ -220,7 +200,6 @@ where
     K: Clone + Debug + Eq,
 {
     /// Creates a new `NodeRefMut` pointing to the specified key in the storage, or `None` if it does not exist.
-    #[inline(always)]
     pub fn new_raw(tree: &'a mut FreeformTree<B, L, K, S>, key: K) -> Option<Self> {
         if tree.storage.contains_key(&key) {
             Some(unsafe {
@@ -235,22 +214,18 @@ where
     ///
     /// # Safety
     /// Causes *immediate* undefined behavior if the specified key is not present in the storage.
-    #[inline(always)]
     pub unsafe fn new_raw_unchecked(tree: &'a mut FreeformTree<B, L, K, S>, key: K) -> Self {
         Self { tree, key }
     }
     /// Returns a reference to the raw storage key for the node.
-    #[inline(always)]
     pub fn raw_key(&self) -> &K {
         &self.key
     }
     /// Consumes the reference and returns the underlying raw storage key for the node.
-    #[inline(always)]
     pub fn into_raw_key(self) -> K {
         self.key
     }
     /// Downgrades a mutable reference to an immutable one.
-    #[inline(always)]
     pub fn downgrade(self) -> NodeRef<'a, B, L, K, S> {
         unsafe {
             // SAFETY: validity gurantees are equal for NodeRef and NodeRefMut
@@ -258,7 +233,6 @@ where
         }
     }
     /// Returns a reference to the parent node of the pointee, or `None` if it's the root node.
-    #[inline]
     pub fn parent(&self) -> Option<NodeRef<'_, B, L, K, S>> {
         self.node().parent.as_ref().map(|x| unsafe {
             // SAFETY: nodes can never have nonexistent parents
@@ -266,7 +240,6 @@ where
         })
     }
     /// Returns a *mutable* reference to the parent node of the pointee, or `None` if it's the root node.
-    #[inline]
     pub fn parent_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         let key = self.node().parent.as_ref().cloned();
         key.map(move |x| unsafe {
@@ -275,7 +248,6 @@ where
         })
     }
     /// Returns a reference to the sibling of the pointee which comes before it in order, or `None` if it's the first child of its parent.
-    #[inline]
     pub fn prev_sibling(&self) -> Option<NodeRef<'_, B, L, K, S>> {
         self.node().next_sibling.as_ref().map(|x| unsafe {
             // SAFETY: next sibling key is always valid
@@ -283,7 +255,6 @@ where
         })
     }
     /// Returns a *mutable* reference to the sibling of the pointee which comes before it in order, or `None` if it's the first child of its parent.
-    #[inline]
     pub fn prev_sibling_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         let key = self.node().prev_sibling.as_ref().cloned();
         key.map(move |x| unsafe {
@@ -292,7 +263,6 @@ where
         })
     }
     /// Returns a reference to the sibling of the pointee which comes after it in order, or `None` if it's the last child of its parent.
-    #[inline]
     pub fn next_sibling(&self) -> Option<NodeRef<'_, B, L, K, S>> {
         self.node().next_sibling.as_ref().map(|x| unsafe {
             // SAFETY: next sibling key is always valid
@@ -302,7 +272,6 @@ where
     /// Returns a *mutable* reference to the sibling of the pointee which comes after it in order, or `None` if it's the last child of its parent.
     ///
     /// This is the only way to iterate through the siblings of a node with mutable access without extra allocations. In the future, a more ergonomic interface might become available.
-    #[inline]
     pub fn next_sibling_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         let key = self.node().next_sibling.as_ref().cloned();
         key.map(move |x| unsafe {
@@ -311,7 +280,6 @@ where
         })
     }
     /// Returns a reference to the first child of the node, or `None` if it's a leaf node.
-    #[inline]
     pub fn first_child(&self) -> Option<NodeRef<'_, B, L, K, S>> {
         if let NodeData::Branch { first_child, .. } = &self.node().value {
             unsafe {
@@ -323,7 +291,6 @@ where
         }
     }
     /// Returns a *mutable* reference to the first child of the node, or `None` if it's a leaf node.
-    #[inline]
     pub fn first_child_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         if let NodeData::Branch { first_child, .. } = &self.node().value {
             let key = first_child.clone();
@@ -336,7 +303,6 @@ where
         }
     }
     /// Returns a reference to the last child of the node, or `None` if it's a leaf node.
-    #[inline]
     pub fn last_child(&self) -> Option<NodeRef<'_, B, L, K, S>> {
         if let NodeData::Branch { last_child, .. } = &self.node().value {
             let key = last_child.clone();
@@ -349,7 +315,6 @@ where
         }
     }
     /// Returns a *mutable* reference to the last child of the node, or `None` if it's a leaf node.
-    #[inline]
     pub fn last_child_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         if let NodeData::Branch { last_child, .. } = &self.node().value {
             let key = last_child.clone();
@@ -362,13 +327,11 @@ where
         }
     }
     /// Returns `true` if the node is the root node, `false` otherwise.
-    #[inline(always)]
     #[allow(clippy::missing_const_for_fn)] // const_option is not stable
     pub fn is_root(&self) -> bool {
         self.node().parent.is_none()
     }
     /// Returns `true` if the node is a *leaf*, i.e. does not have child nodes; `false` otherwise.
-    #[inline]
     pub fn is_leaf(&self) -> bool {
         match &self.node().value {
             NodeData::Branch { .. } => false,
@@ -376,7 +339,6 @@ where
         }
     }
     /// Returns `true` if the node is a *branch*, i.e. has one or more child nodes; `false` otherwise.
-    #[inline]
     pub fn is_branch(&self) -> bool {
         match &self.node().value {
             NodeData::Branch { .. } => true,
@@ -384,22 +346,18 @@ where
         }
     }
     /// Returns a reference to the data stored in the node.
-    #[inline(always)]
     pub fn value(&self) -> NodeValue<&'_ B, &'_ L> {
         self.node().value.as_ref().into_value()
     }
     /// Returns a *mutable* reference to the data stored in the node.
-    #[inline(always)]
     pub fn value_mut(&mut self) -> NodeValue<&'_ mut B, &'_ mut L> {
         self.node_mut().value.as_mut().into_value()
     }
     /// Returns an iterator over references to the siblings of the node. Does not include siblings which come before the current node. The first element yielded is always `self`.
-    #[inline(always)]
     pub fn siblings(self) -> NodeSiblingsIter<'a, B, L, K, S> {
         NodeSiblingsIter(self.sibling_keys())
     }
     /// Returns an iterator over the raw keys of the siblings of the node. Does not include siblings which come before the current node. The first element yielded is always `self`'s key.
-    #[inline(always)]
     pub fn sibling_keys(self) -> NodeSiblingKeysIter<'a, B, L, K, S> {
         NodeSiblingKeysIter {
             tree: self.tree,
@@ -407,12 +365,10 @@ where
         }
     }
     /// Returns an iterator over references to the children of the node, or `None` if the node is a leaf node.
-    #[inline(always)]
     pub fn children(&self) -> Option<NodeChildrenIter<'_, B, L, K, S>> {
         self.first_child().map(NodeRef::siblings)
     }
     /// Returns an iterator over the raw keys of the children of the node, or `None` if the node is a leaf node.
-    #[inline(always)]
     pub fn children_keys(&self) -> Option<NodeChildKeysIter<'_, B, L, K, S>> {
         self.first_child().map(NodeRef::sibling_keys)
     }
@@ -421,7 +377,6 @@ where
     ///
     /// # Errors
     /// Will fail if the node is already a branch node. In such a case, the provided values for the children are returned back to the caller.
-    #[inline]
     pub fn make_branch_with<I: IntoIterator<Item = L>>(
         &mut self,
         children: I,
@@ -512,7 +467,6 @@ where
     /// [`push_front_with`]: struct.NodeRefMut.html#method.push_front_with " "
     /// [`push_back`]: struct.NodeRefMut.html#method.push_back " "
     /// [`push_front`]: struct.NodeRefMut.html#method.push_front " "
-    #[inline]
     pub fn try_push_back(&mut self, child_payload: L) -> Result<(), TryPushError<L>> {
         if self.is_leaf() {
             return Err(TryPushError { child_payload });
@@ -550,7 +504,6 @@ where
     /// [`push_front_with`]: struct.NodeRefMut.html#method.push_front_with " "
     /// [`push_back`]: struct.NodeRefMut.html#method.push_back " "
     /// [`push_front`]: struct.NodeRefMut.html#method.push_front " "
-    #[inline]
     pub fn try_push_front(&mut self, child_payload: L) -> Result<(), TryPushError<L>> {
         if self.is_leaf() {
             return Err(TryPushError { child_payload });
@@ -586,7 +539,6 @@ where
     /// Will fail in the following scenarios:
     /// - The node was a branch node, which would require recursion to remove, and this function explicitly does not implement recursive removal.
     /// - The node was the root node, which can never be removed.
-    #[inline]
     pub fn try_remove_leaf_with(
         self,
         branch_to_leaf: impl FnOnce(B) -> L,
@@ -685,7 +637,6 @@ where
     /// - The node was a leaf node. The `try_remove_leaf`/`try_remove_leaf_with` methods exist for that.
     /// - The node was the root node, which can never be removed.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
-    #[inline]
     pub fn try_remove_branch_with(
         self,
         branch_to_leaf: impl FnOnce(B) -> L,
@@ -803,7 +754,6 @@ where
     /// Will fail in the following scenarios:
     /// - The node was a leaf node, which cannot have children by definition.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
-    #[inline]
     pub fn try_remove_children_with(
         &mut self,
         branch_to_leaf: impl FnOnce(B) -> L,
@@ -880,12 +830,10 @@ where
         Ok(())
     }
     /// Recursively removes the specified node and all its descendants, using a closure to patch nodes which transition from having one child to having zero children.
-    #[inline(always)]
     pub fn recursively_remove_with(self, branch_to_leaf: impl FnMut(B) -> L) -> NodeValue<B, L> {
         algorithms::recursively_remove_with(self.tree, self.key, branch_to_leaf)
     }
 
-    #[inline(always)]
     fn node(&self) -> &'_ Node<B, L, K> {
         debug_assert!(
             self.tree.storage.contains_key(&self.key),
@@ -898,7 +846,6 @@ debug key check failed: tried to reference key {:?} which is not present in the 
             self.tree.storage.get_unchecked(&self.key)
         }
     }
-    #[inline(always)]
     fn node_mut(&mut self) -> &'_ mut Node<B, L, K> {
         debug_assert!(
             self.tree.storage.contains_key(&self.key),
@@ -921,7 +868,6 @@ where
     ///
     /// # Errors
     /// Will fail if the node is already a branch node. In such a case, the provided values for the children are returned back to the caller.
-    #[inline(always)]
     pub fn make_branch<I: IntoIterator<Item = D>>(
         &mut self,
         children: I,
@@ -934,7 +880,6 @@ where
     /// Will fail in the following scenarios:
     /// - The node was a branch node, which would require recursion to remove, and this function explicitly does not implement recursive removal.
     /// - The node was the root node, which can never be removed.
-    #[inline(always)]
     pub fn try_remove_leaf(self) -> Result<D, TryRemoveLeafError> {
         self.try_remove_leaf_with(convert::identity)
     }
@@ -945,7 +890,6 @@ where
     /// - The node was a leaf node. The `try_remove_leaf`/`try_remove_leaf_with` methods exist for that.
     /// - The node was the root node, which can never be removed.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
-    #[inline(always)]
     pub fn try_remove_branch(self, collector: impl FnMut(D)) -> Result<D, TryRemoveBranchError> {
         self.try_remove_branch_with(convert::identity, collector)
     }
@@ -955,7 +899,6 @@ where
     /// Will fail in the following scenarios:
     /// - The node was a leaf node, which cannot have children by definition.
     /// - One or more of the node's children were a branch node, which thus would require recursion to remove.
-    #[inline(always)]
     pub fn try_remove_children(
         &mut self,
         collector: impl FnMut(D),
@@ -963,7 +906,6 @@ where
         self.try_remove_children_with(convert::identity, collector)
     }
     /// Recursively removes the specified node and all its descendants. Will keep the original payload of the parent node if removing this node results in a transformation of the parent into a leaf, which is why *this method is only available when the payload for leaf nodes and branch nodes is the same.*
-    #[inline(always)]
     pub fn recursively_remove(self) -> NodeValue<D> {
         algorithms::recursively_remove(self.tree, self.key)
     }
@@ -974,7 +916,6 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
-    #[inline(always)]
     fn from(op: &'a NodeRefMut<'a, B, L, K, S>) -> Self {
         op.value()
     }
@@ -984,7 +925,6 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
-    #[inline(always)]
     fn from(op: &'a mut NodeRefMut<'a, B, L, K, S>) -> Self {
         op.value()
     }
@@ -995,7 +935,6 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
-    #[inline(always)]
     fn from(op: &'a mut NodeRefMut<'a, B, L, K, S>) -> Self {
         op.value_mut()
     }
@@ -1006,7 +945,6 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
-    #[inline(always)]
     fn from(op: &'a NodeRefMut<'a, B, L, K, S>) -> Self {
         NodeRef {
             tree: op.tree as &'a _,
@@ -1019,7 +957,6 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
-    #[inline(always)]
     fn from(op: &'a mut NodeRefMut<'a, B, L, K, S>) -> Self {
         NodeRef {
             tree: op.tree as &'a _,
@@ -1032,7 +969,6 @@ where
     S: Storage<Element = Node<B, L, K>, Key = K>,
     K: Clone + Debug + Eq,
 {
-    #[inline(always)]
     fn from(op: NodeRefMut<'a, B, L, K, S>) -> Self {
         NodeRef {
             tree: op.tree as &'a _,
@@ -1060,7 +996,6 @@ where
     K: Clone + Debug + Eq,
 {
     type Item = K;
-    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let current_key = self.key.take()?;
         let next_key = unsafe {
@@ -1072,7 +1007,6 @@ where
         self.key = next_key;
         Some(current_key)
     }
-    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         if self.key.is_some() {
             (1, None)
@@ -1105,14 +1039,12 @@ where
     K: Clone + Debug + Eq,
 {
     type Item = NodeRef<'a, B, L, K, S>;
-    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|key| unsafe {
             // SAFETY: key validity guaranteed
             NodeRef::new_raw_unchecked(self.0.tree, key)
         })
     }
-    #[inline(always)]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.0.size_hint()
     }

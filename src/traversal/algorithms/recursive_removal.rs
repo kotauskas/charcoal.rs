@@ -14,7 +14,6 @@ use super::{
 /// See the [visitor documentation] for the details and performance of the algorithm.
 ///
 /// [visitor documentation]: struct.RecursiveRemovalWith.html " "
-#[inline]
 pub fn recursively_remove_with<T: TraversableMut>(
     traversable: &mut T,
     cursor: T::Cursor,
@@ -28,7 +27,6 @@ pub fn recursively_remove_with<T: TraversableMut>(
 /// See the [visitor documentation] for the details and performance of the algorithm.
 ///
 /// [visitor documentation]: struct.RecursiveRemovalWith.html " "
-#[inline(always)]
 pub fn recursively_remove<T>(
     traversable: &mut T,
     cursor: T::Cursor,
@@ -84,7 +82,6 @@ pub struct RecursiveRemovalWith<T: TraversableMut, F: FnMut(T::Branch) -> T::Lea
 }
 impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> RecursiveRemovalWith<T, F> {
     /// Creates the visitor, removing the node at the specified cursor with the specified conversion closure.
-    #[inline(always)]
     pub fn new(cursor: T::Cursor, conversion: F) -> Self {
         Self {
             pivot: cursor,
@@ -108,7 +105,6 @@ impl<T: TraversableMut, F: FnMut(T::Branch) -> T::Leaf> VisitorMut for Recursive
         clippy::shadow_unrelated, // It's not "unrelated" smh
         clippy::too_many_lines, // I know how to count, thank you very much
     )]
-    #[inline]
     fn visit_mut<C, M>(
         &mut self,
         traversable: M,

@@ -169,7 +169,6 @@ pub trait Traversable: Sized {
         }
     }
     /// Traverses the traversable from the root node until the end, returning the final result of the visitor.
-    #[inline(always)]
     fn traverse<V>(&self, visitor: V) -> V::Output
     where
         V: Visitor,
@@ -338,7 +337,6 @@ pub trait TraversableMut: Traversable {
         }
     }
     /// *Mutably* traverses the traversable from the root node until the end, returning the final result of the visitor.
-    #[inline(always)]
     fn traverse_mut<V: VisitorMut>(&mut self, visitor: V) -> V::Output
     where
         for<'a> &'a mut Self: BorrowMut<V::Target>,
@@ -389,13 +387,11 @@ impl<C: Clone + Debug + Eq> CursorDirectionError<C> {
     /// Returns the previous state of the cursor.
     ///
     /// Primarily used as a convenience function for `unwrap_or_else` on `CursorResult`.
-    #[inline(always)]
     pub fn recover(self) -> C {
         self.previous_state
     }
 }
 impl<C: Clone + Debug + Eq> Display for CursorDirectionError<C> {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.pad("cannot move cursor in the specified direction")
     }
@@ -435,7 +431,6 @@ where
     T::Cursor: From<<V::Target as Traversable>::Cursor> + Into<<V::Target as Traversable>::Cursor>,
 {
     /// Creates a traversal iterator with the specified traversable and visitor.
-    #[inline(always)]
     pub fn new(visitor: V, traversable: T) -> Self {
         Self {
             visitor,
@@ -452,7 +447,6 @@ where
     for<'a> &'a T: Borrow<V::Target>,
     T::Cursor: From<<V::Target as Traversable>::Cursor> + Into<<V::Target as Traversable>::Cursor>,
 {
-    #[inline(always)]
     fn from(op: (V, T)) -> Self {
         Self::new(op.0, op.1)
     }
@@ -465,7 +459,6 @@ where
     T::Cursor: From<<V::Target as Traversable>::Cursor> + Into<<V::Target as Traversable>::Cursor>,
 {
     type Item = Option<V::Output>;
-    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.finished {
             return None;
@@ -494,7 +487,6 @@ where
     T::Cursor:
         From<<V::Target as Traversable>::Cursor> + Into<<V::Target as Traversable>::Cursor> + Debug,
 {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("TraverseIter")
             .field("visitor", &self.visitor)
@@ -544,7 +536,6 @@ where
     T::Cursor: From<<V::Target as Traversable>::Cursor> + Into<<V::Target as Traversable>::Cursor>,
 {
     /// Creates a mutating traversal iterator with the specified traversable and visitor.
-    #[inline(always)]
     pub fn new(visitor: V, traversable: T) -> Self {
         Self {
             visitor,
@@ -561,7 +552,6 @@ where
     for<'a> &'a mut T: BorrowMut<V::Target>,
     T::Cursor: From<<V::Target as Traversable>::Cursor> + Into<<V::Target as Traversable>::Cursor>,
 {
-    #[inline(always)]
     fn from(op: (V, T)) -> Self {
         Self::new(op.0, op.1)
     }
@@ -574,7 +564,6 @@ where
     T::Cursor: From<<V::Target as Traversable>::Cursor> + Into<<V::Target as Traversable>::Cursor>,
 {
     type Item = Option<V::Output>;
-    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.finished {
             return None;
@@ -603,7 +592,6 @@ where
     T::Cursor:
         From<<V::Target as Traversable>::Cursor> + Into<<V::Target as Traversable>::Cursor> + Debug,
 {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("TraverseMutIter")
             .field("visitor", &self.visitor)
@@ -628,7 +616,6 @@ where
 impl<T: Visitor> Visitor for &mut T {
     type Target = T::Target;
     type Output = T::Output;
-    #[inline(always)]
     fn visit<C>(
         &mut self,
         traversable: impl Borrow<Self::Target>,
@@ -647,7 +634,6 @@ impl<T: Visitor> Visitor for &mut T {
 impl<T: VisitorMut> VisitorMut for &mut T {
     type Target = T::Target;
     type Output = T::Output;
-    #[inline(always)]
     fn visit_mut<C, M>(
         &mut self,
         traversable: M,
@@ -669,7 +655,6 @@ impl<T: Traversable> Traversable for &T {
     type Branch = T::Branch;
     type Cursor = T::Cursor;
 
-    #[inline(always)]
     fn advance_cursor<V>(
         &self,
         cursor: Self::Cursor,
@@ -677,23 +662,18 @@ impl<T: Traversable> Traversable for &T {
     ) -> CursorResult<Self::Cursor> {
         (*self).advance_cursor(cursor, direction)
     }
-    #[inline(always)]
     fn cursor_to_root(&self) -> Self::Cursor {
         (**self).cursor_to_root()
     }
-    #[inline(always)]
     fn value_of(&self, cursor: &Self::Cursor) -> NodeValue<&'_ Self::Branch, &'_ Self::Leaf> {
         (**self).value_of(cursor)
     }
-    #[inline(always)]
     fn num_children_of(&self, cursor: &Self::Cursor) -> usize {
         (**self).num_children_of(cursor)
     }
-    #[inline(always)]
     fn parent_of(&self, cursor: &Self::Cursor) -> Option<Self::Cursor> {
         (**self).parent_of(cursor)
     }
-    #[inline(always)]
     fn nth_child_of(&self, cursor: &Self::Cursor, child_num: usize) -> Option<Self::Cursor> {
         (**self).nth_child_of(cursor, child_num)
     }
@@ -703,7 +683,6 @@ impl<T: Traversable> Traversable for &mut T {
     type Branch = T::Branch;
     type Cursor = T::Cursor;
 
-    #[inline(always)]
     fn advance_cursor<V>(
         &self,
         cursor: Self::Cursor,
@@ -711,23 +690,18 @@ impl<T: Traversable> Traversable for &mut T {
     ) -> CursorResult<Self::Cursor> {
         (**self).advance_cursor(cursor, direction)
     }
-    #[inline(always)]
     fn cursor_to_root(&self) -> Self::Cursor {
         (**self).cursor_to_root()
     }
-    #[inline(always)]
     fn value_of(&self, cursor: &Self::Cursor) -> NodeValue<&'_ Self::Branch, &'_ Self::Leaf> {
         (**self).value_of(cursor)
     }
-    #[inline(always)]
     fn num_children_of(&self, cursor: &Self::Cursor) -> usize {
         (**self).num_children_of(cursor)
     }
-    #[inline(always)]
     fn parent_of(&self, cursor: &Self::Cursor) -> Option<Self::Cursor> {
         (**self).parent_of(cursor)
     }
-    #[inline(always)]
     fn nth_child_of(&self, cursor: &Self::Cursor, child_num: usize) -> Option<Self::Cursor> {
         (**self).nth_child_of(cursor, child_num)
     }
@@ -736,14 +710,12 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
     const CAN_REMOVE_INDIVIDUAL_CHILDREN: bool = T::CAN_REMOVE_INDIVIDUAL_CHILDREN;
     const CAN_PACK_CHILDREN: bool = T::CAN_PACK_CHILDREN;
     type PackedChildren = T::PackedChildren;
-    #[inline(always)]
     fn value_mut_of(
         &mut self,
         cursor: &Self::Cursor,
     ) -> NodeValue<&'_ mut Self::Branch, &'_ mut Self::Leaf> {
         (*self).value_mut_of(cursor)
     }
-    #[inline(always)]
     fn try_remove_leaf<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
         cursor: &Self::Cursor,
@@ -751,7 +723,6 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
     ) -> Result<Self::Leaf, TryRemoveLeafError> {
         (*self).try_remove_leaf(cursor, branch_to_leaf)
     }
-    #[inline(always)]
     #[allow(clippy::type_complexity)]
     fn try_remove_branch_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
         &mut self,
@@ -761,7 +732,6 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
     ) -> Result<Self::Branch, TryRemoveBranchError> {
         (*self).try_remove_branch_into(cursor, branch_to_leaf, collector)
     }
-    #[inline(always)]
     #[allow(clippy::type_complexity)]
     fn try_remove_children_into<BtL: FnOnce(Self::Branch) -> Self::Leaf, C: FnMut(Self::Leaf)>(
         &mut self,
@@ -771,7 +741,6 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
     ) -> Result<(), TryRemoveChildrenError> {
         (*self).try_remove_children_into(cursor, branch_to_leaf, collector)
     }
-    #[inline(always)]
     #[allow(clippy::type_complexity)]
     fn try_remove_branch<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,
@@ -780,7 +749,6 @@ impl<T: Traversable + TraversableMut> TraversableMut for &mut T {
     ) -> Result<(Self::Branch, Self::PackedChildren), TryRemoveBranchError> {
         (*self).try_remove_branch(cursor, branch_to_leaf)
     }
-    #[inline(always)]
     #[allow(clippy::type_complexity)]
     fn try_remove_children<BtL: FnOnce(Self::Branch) -> Self::Leaf>(
         &mut self,

@@ -201,7 +201,6 @@ pub enum NodeValue<B, L = B> {
 }
 impl<B, L> NodeValue<B, L> {
     /// Converts from `&NodeValue<B, L>` to `NodeValue<&B, &L>`.
-    #[inline]
     pub const fn as_ref(&self) -> NodeValue<&B, &L> {
         match self {
             Self::Branch(x) => NodeValue::Branch(x),
@@ -209,7 +208,6 @@ impl<B, L> NodeValue<B, L> {
         }
     }
     /// Converts from `&mut NodeValue<B, L>` to `NodeValue<&mut B, &mut L>`.
-    #[inline]
     pub fn as_mut(&mut self) -> NodeValue<&mut B, &mut L> {
         match self {
             Self::Branch(x) => NodeValue::Branch(x),
@@ -219,7 +217,6 @@ impl<B, L> NodeValue<B, L> {
 }
 impl<T> NodeValue<T, T> {
     /// Extracts the value, discarding information about whether the node was a leaf or branch. *Available only if the leaf and branch payloads are the same type.*
-    #[inline(always)]
     #[allow(clippy::missing_const_for_fn)]
     pub fn into_inner(self) -> T {
         match self {
@@ -229,25 +226,21 @@ impl<T> NodeValue<T, T> {
 }
 // FIXME a From conversion here might become possible at some point
 impl<T> AsRef<T> for NodeValue<T, T> {
-    #[inline(always)]
     fn as_ref(&self) -> &T {
         self.as_ref().into_inner()
     }
 }
 impl<T> AsRef<T> for NodeValue<&T, &T> {
-    #[inline(always)]
     fn as_ref(&self) -> &T {
         self.into_inner()
     }
 }
 impl<T> AsMut<T> for NodeValue<T, T> {
-    #[inline(always)]
     fn as_mut(&mut self) -> &mut T {
         self.as_mut().into_inner()
     }
 }
 impl<'a, T> AsMut<T> for NodeValue<&'a mut T, &'a mut T> {
-    #[inline(always)]
     fn as_mut(&mut self) -> &mut T {
         match self {
             NodeValue::Branch(x) | NodeValue::Leaf(x) => x,
@@ -266,7 +259,6 @@ pub enum TryRemoveLeafError {
     CannotRemoveIndividualChildren,
 }
 impl Display for TryRemoveLeafError {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.pad(match self {
             Self::WasRootNode => "cannot remove the root node of a tree",
@@ -294,7 +286,6 @@ pub enum TryRemoveBranchError {
     CannotRemoveIndividualChildren,
 }
 impl Display for TryRemoveBranchError {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.pad(match self {
             Self::WasRootNode => "cannot remove the root node of a tree",
@@ -333,7 +324,6 @@ pub enum TryRemoveChildrenError {
     HadBranchChild(u32),
 }
 impl Display for TryRemoveChildrenError {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.pad(match self {
             Self::WasLeafNode => "expected a branch node, found leaf",
@@ -372,7 +362,6 @@ impl<L, P> Display for MakeBranchError<L, P>
 where
     P: IntoIterator<Item = L>,
 {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.pad("the node already was a branch")
     }
