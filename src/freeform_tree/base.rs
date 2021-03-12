@@ -184,3 +184,14 @@ where
         self.storage.is_dense()
     }
 }
+
+impl<B, L, K, S> Default for FreeformTree<B, L, K, S>
+where
+    L: Default,
+    S: Storage<Element = Node<B, L, K>, Key = K>,
+    K: Clone + Debug + Eq,
+{
+    fn default() -> Self {
+        Self::new(L::default())
+    }
+}
