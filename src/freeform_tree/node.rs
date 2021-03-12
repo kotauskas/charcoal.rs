@@ -1,4 +1,4 @@
-use core::{num::NonZeroIsize, fmt::Debug};
+use core::{num::NonZeroIsize, fmt::Debug, hint, convert::TryFrom};
 use crate::{
     storage::{ListStorage, MoveFix},
     util::unreachable_debugchecked,
@@ -86,8 +86,17 @@ impl<B, L> MoveFix for Node<B, L, usize> {
             return;
         };
         for i in fix_starting_from..storage.len() {
-            let old_index = i - shifted_by.get() as usize; // undo shift to figure out old index
-            Self::fix_move(storage, old_index, i);
+            let old_index = isize::try_from(i)
+                // SAFETY: not having more than isize::MAX elements is an
+                // unsafe guarantee of ListStorage
+                .unwrap_or_else(|_| hint::unreachable_unchecked())
+                - shifted_by.get(); // undo shift to figure out old index
+            Self::fix_move(
+                storage,
+                // SAFETY: same as above
+                usize::try_from(old_index).unwrap_or_else(|_| hint::unreachable_unchecked()),
+                i,
+            );
         }
     }
 
