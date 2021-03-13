@@ -112,6 +112,7 @@ where
         self.node_mut().value.as_mut().into_value()
     }
     /// Returns references to the children, or `None` if the node is a leaf node.
+    #[allow(clippy::missing_panics_doc)]
     pub fn children(&self) -> Option<[NodeRef<'_, B, L, K, S>; 8]> {
         if let NodeData::Branch { children, .. } = &self.node().value {
             Some(children)

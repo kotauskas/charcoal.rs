@@ -103,6 +103,7 @@ where
         Some(self.key == *right_child_key)
     }
     /// Returns references to the children, or `None` if the node is a leaf node or it only has one child. To retreive the left child even if the right one is not present, see `left_child`.
+    #[allow(clippy::missing_panics_doc)]
     pub fn children(&self) -> Option<(Self, Self)> {
         match &self.node().value {
             NodeData::Branch {
@@ -136,6 +137,7 @@ debug key check failed: tried to reference keys {:?} and {:?} which are not pres
     /// If you need both children, use [`children`] instead.
     ///
     /// [`children`]: #method.children " "
+    #[allow(clippy::missing_panics_doc)]
     pub fn left_child(&self) -> Option<Self> {
         if let NodeData::Branch { left_child, .. } = &self.node().value {
             Some(left_child)
@@ -159,6 +161,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
     /// If you need both children, use [`children`] instead.
     ///
     /// [`children`]: #method.children " "
+    #[allow(clippy::missing_panics_doc)]
     pub fn right_child(&self) -> Option<Self> {
         if let NodeData::Branch { left_child, .. } = &self.node().value {
             Some(left_child.clone())

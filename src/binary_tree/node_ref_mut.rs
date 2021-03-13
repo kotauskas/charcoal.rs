@@ -130,6 +130,7 @@ where
         NodeRef::from(self).left_child()
     }
     /// Returns a *mutable* reference to the left child, or `None` if the node is a leaf node.
+    #[allow(clippy::missing_panics_doc)]
     pub fn left_child_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         if let NodeData::Branch { left_child, .. } = &self.node().value {
             Some(left_child.clone())
@@ -153,6 +154,7 @@ debug key check failed: tried to reference key {:?} which is not present in the 
         NodeRef::from(self).right_child()
     }
     /// Returns a *mutable* reference to the right child, or `None` if the node is a leaf node.
+    #[allow(clippy::missing_panics_doc)]
     pub fn right_child_mut(&mut self) -> Option<NodeRefMut<'_, B, L, K, S>> {
         if let NodeData::Branch { left_child, .. } = &self.node().value {
             Some(left_child.clone())

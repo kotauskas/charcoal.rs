@@ -65,7 +65,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // TODO reimplement LinkedList
 //#![cfg_attr(feature = "linked_list_storage", feature(linked_list_cursors))]
-#![cfg_attr(feature = "union_optimizations", feature(untagged_unions))]
 #![cfg_attr(feature = "doc_cfg", feature(doc_cfg))]
 
 #[cfg(feature = "alloc")]
@@ -112,9 +111,7 @@ pub mod prelude {
     #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "binary_tree")))]
     #[doc(no_inline)]
     pub use crate::binary_tree::{
-        BinaryTree,
-        NodeRef as BinaryTreeNodeRef,
-        NodeRefMut as BinaryTreeNodeRefMut,
+        BinaryTree, NodeRef as BinaryTreeNodeRef, NodeRefMut as BinaryTreeNodeRefMut,
     };
     #[cfg(feature = "octree")]
     #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "octree")))]
@@ -128,9 +125,7 @@ pub mod prelude {
     #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "freeform_tree")))]
     #[doc(no_inline)]
     pub use crate::freeform_tree::{
-        FreeformTree,
-        NodeRef as FreeformTreeNodeRef,
-        NodeRefMut as FreeformTreeNodeRefMut,
+        FreeformTree, NodeRef as FreeformTreeNodeRef, NodeRefMut as FreeformTreeNodeRefMut,
     };
 }
 

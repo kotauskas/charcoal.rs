@@ -97,6 +97,7 @@ where
         unsafe { unreachable_debugchecked("failed to find node in parent's child list") }
     }
     /// Returns references to the children, or `None` if the node is a leaf node.
+    #[allow(clippy::missing_panics_doc)]
     pub fn children(&self) -> Option<[Self; 4]> {
         if let NodeData::Branch { children, .. } = &self.node().value {
             Some(children)

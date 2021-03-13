@@ -16,15 +16,14 @@ keywords = ["tree", "trees", "arena_tree"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-arrayvec = {version = "0.5", default_features = false}
-granite = {version = "1.0", features = ["arrayvec"]}
+arrayvec = { version = "0.5", default_features = false }
+granite = { version = "1.0", features = ["arrayvec"] }
 
 [features]
 default = [
     "std",
     "unwind_safety",
     "alloc",
-
     "binary_tree",
     "octree",
     "quadtree",
@@ -51,16 +50,13 @@ features = [
     "std",
     "unwind_safety",
     "alloc",
-
     "binary_tree",
     "octree",
     "quadtree",
     "freeform_tree",
-
     "smallvec",
     "slab",
     "slotmap",
-
     "union_optimizations",
     "doc_cfg",
 ]

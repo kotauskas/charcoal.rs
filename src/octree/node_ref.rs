@@ -1,6 +1,11 @@
 use core::fmt::Debug;
 use super::{Octree, Node, NodeData};
-use crate::{Storage, DefaultStorage, NodeValue, util::unreachable_debugchecked};
+use crate::{
+    DefaultStorage,
+    NodeValue,
+    Storage,
+    util::{ArrayMap, unreachable_debugchecked},
+};
 
 /// A reference to a node in an octree.
 ///
@@ -92,6 +97,7 @@ where
         unsafe { unreachable_debugchecked("failed to find node in parent's child list") }
     }
     /// Returns references to the children, or `None` if the node is a leaf node.
+    #[allow(clippy::missing_panics_doc)]
     pub fn children(&self) -> Option<[Self; 8]> {
         if let NodeData::Branch { children, .. } = &self.node().value {
             Some(children)
@@ -107,21 +113,11 @@ debug key check failed: tried to reference key {:?} which is not present in the 
                     c,
                 );
             }
-            let [child_0, child_1, child_2, child_3, child_4, child_5, child_6, child_7] =
-                children.clone();
-            // There might be a way to make this look nicer.
-            [
-                // SAFETY: child keys are guaranteed to be valid; a key check to make sure that
-                // properly holds is above.
-                Self::new_raw_unchecked(self.tree, child_0),
-                Self::new_raw_unchecked(self.tree, child_1),
-                Self::new_raw_unchecked(self.tree, child_2),
-                Self::new_raw_unchecked(self.tree, child_3),
-                Self::new_raw_unchecked(self.tree, child_4),
-                Self::new_raw_unchecked(self.tree, child_5),
-                Self::new_raw_unchecked(self.tree, child_6),
-                Self::new_raw_unchecked(self.tree, child_7),
-            ]
+            // SAFETY: child keys are guaranteed to be valid; a key check to make sure that
+            // properly holds is above.
+            children
+                .clone()
+                .array_map(|child| Self::new_raw_unchecked(self.tree, child))
         })
     }
     /// Returns a reference to the `n`-th child, or `None` if the node has no children. Indexing starts from zero, thus the value is in range from 0 to 7.
